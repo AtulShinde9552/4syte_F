@@ -7,5 +7,11 @@ export default defineConfig({
 
   server: {
     allowedHosts: [".ngrok-free.dev"],
+    proxy: {
+      "/clientportal": {
+        target: "https://api.4syte.io/",
+        changeOrigin: true,
+      },
+    },
   },
 });

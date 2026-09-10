@@ -6,18 +6,67 @@
   --font-sans: "Outfit", sans-serif;
 }
 
-html, body, #root {
-  height: 100%;
+/* === BASE SETUP === */
+html {
+  width: 100vw;
+  height: 100vh;
   margin: 0;
   padding: 0;
   overflow: hidden;
+  background-color: #F4F7F6; /* Halqa background color taaki pichhe safed na dikhe */
 }
 
 body {
   font-family: var(--font-outfit);
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
+#root {
+  width: 100%;
+  height: 100%;
+}
 
+/* =========================================
+   SCALING MAGIC (PREMIUM ZOOM EFFECT)
+   ========================================= */
+
+/* 1024px (Laptops) - 85% Zoom */
+@media (min-width: 1024px) {
+  body {
+    transform: scale(0.85);
+    transform-origin: top left;
+    width: 117.647vw !important;  /* 100 / 0.85 (White gap khatam karne ke liye) */
+    height: 117.647vh !important;
+  }
+  
+  /* Tailwind Fixed Classes Override */
+  .h-screen { height: 117.647vh !important; }
+  .min-h-screen { min-height: 117.647vh !important; }
+  .w-screen { width: 117.647vw !important; }
+  .min-w-screen { min-width: 117.647vw !important; }
+}
+
+/* 1440px (Bade Monitors/Screens) - 80% Zoom */
+@media (min-width: 1440px) {
+  body {
+    transform: scale(0.80);
+    transform-origin: top left;
+    width: 125vw !important;      /* 100 / 0.80 */
+    height: 125vh !important;
+  }
+  
+  /* Tailwind Fixed Classes Override */
+  .h-screen { height: 125vh !important; }
+  .min-h-screen { min-height: 125vh !important; }
+  .w-screen { width: 125vw !important; }
+  .min-w-screen { min-width: 125vw !important; }
+}
+
+/* === SCROLLBAR HIDE === */
 .scrollbar-hide {
   -ms-overflow-style: none;  
   scrollbar-width: none;     

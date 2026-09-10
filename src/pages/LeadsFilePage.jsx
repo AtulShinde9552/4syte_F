@@ -7,9 +7,12 @@ import Pagination from "../components/Pagination";
 import ActionsDropdown from "../components/LeadsFile/ActionsDropdown";
 import GenericTable from "../components/GenericTable";
 import FilterBar from "../components/LeadsFile/FilterBar";
+import { get } from "../api";
+import { usePopup } from "../components/Popup";
 const ROWS_PER_PAGE = 11;
 
 export default function LeadsFilePage() {
+  const { show } = usePopup();
   const [allLeads, setAllLeads] = useState([]);
   const [dynamicHeaders, setDynamicHeaders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,8 +70,7 @@ export default function LeadsFilePage() {
 
       // API call mein client_id parameter bhejo
       const clientIdParam = targetClientId ? `?client_id=${targetClientId}` : "";
-      const response = await fetch(`http://localhost/clientportal/leads/get_all_leads_data${clientIdParam}`);
-      const result = await response.json();
+        const result = await get(`/leads/get_all_leads_data${clientIdParam}`);
       
       if (result.status === "success") {
         setAllLeads(result.data);
@@ -164,7 +166,7 @@ export default function LeadsFilePage() {
 
   const downloadCSV = (dataToExport, fileName) => {
     if (!dataToExport || dataToExport.length === 0) {
-      alert("No data available to download!");
+      show("No data available to download!", "info");
       return;
     }
     const headers = ["campaignName", "aid", ...dynamicHeaders];

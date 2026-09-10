@@ -7,6 +7,8 @@ import RadioGroup from "../../components/form/RadioGroup";
 import TextAreaField from "../../components/form/TextAreaField";
 import FileUploadField from "../../components/form/FileUploadField";
 import { ArrowLeft } from "lucide-react";
+import { post } from "../../api";
+import { usePopup } from "../../components/Popup";
 
 const marketingChannels = [
   "Email Marketing",
@@ -28,6 +30,7 @@ const pacingOptions = [
 
 // NAYA: Yahan 'targetClientId' ko receive kiya
 export default function OverviewTab({ onCampaignCreated, targetClientId }) {
+  const { show } = usePopup();
   const navigate = useNavigate();
   
   // Input states
@@ -64,13 +67,13 @@ export default function OverviewTab({ onCampaignCreated, targetClientId }) {
   const handleCreateCampaign = async () => {
     // Basic frontend validation
     if (!campaignName || !ownerName || !startDate || !endDate) {
-      alert("Please fill all required fields (Campaign Name, Owner Name, Dates).");
+      show("Please fill all required fields (Campaign Name, Owner Name, Dates).", "warning");
       return;
     }
 
     // NAYA: Strict Check for Client ID
     if (!targetClientId) {
-      alert("Error: Client ID is missing. Please select a client first!");
+      show("Client ID is missing. Please select a client first!", "warning");
       return;
     }
 
@@ -97,21 +100,16 @@ export default function OverviewTab({ onCampaignCreated, targetClientId }) {
     }
 
     try {
-      const response = await fetch("http://localhost/clientportal/campaign/create_overview", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
+      const result = await post("/campaign/create_overview", formData);
 
       if (result.status === "success") {
         onCampaignCreated(result.campaign_id);
       } else {
-        alert("Error: " + result.message);
+        show(result.message || "Unable to create the campaign overview.", "error");
       }
     } catch (error) {
       console.error("Submission Error:", error);
-      alert("Failed to connect to the backend server.");
+      show("Failed to connect to the backend server.", "error");
     } finally {
       setIsLoading(false);
     }

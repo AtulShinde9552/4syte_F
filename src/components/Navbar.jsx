@@ -3,6 +3,7 @@ import { Bell, Mail } from "lucide-react";
 import GlassIconButton from "./GlassIconButton";
 import NotificationPopup from "./NotificationPopup";
 import { Link } from "react-router-dom";
+import { assetUrl } from "../api";
 
 // Abhi notifications ko static rakha hai, aage chal kar ise bhi API se map kar lenge
 const notifications = [
@@ -34,7 +35,7 @@ export default function Navbar() {
 
   // 2. AVATAR LOGIC: Agar avatar DB me hai toh wo dikhao, warna UI-Avatars use karo
   const userAvatar = user.avatar 
-    ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost/clientportal/${user.avatar}`) 
+    ? assetUrl(user.avatar)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=00A292&color=fff`;
 
   useEffect(() => {

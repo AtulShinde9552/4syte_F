@@ -3,6 +3,7 @@ import { Rocket } from "lucide-react";
 import SearchText from "../components/SearchText";
 import GenericTable from "../components/GenericTable";
 import Pagination from "../components/Pagination";
+import { get } from "../api";
 // Naya import: useOutletContext
 import { useNavigate, useOutletContext } from "react-router-dom";
 
@@ -49,10 +50,7 @@ export default function CampaignListPage() {
         ? `?client_id=${targetClientId}`
         : "";
 
-      const response = await fetch(
-        `http://localhost/clientportal/campaign/get_list${clientIdParam}`,
-      );
-      const result = await response.json();
+      const result = await get(`/campaign/get_list${clientIdParam}`);
 
       if (result.status === "success") {
         const formattedData = result.data.map((camp) => {

@@ -4,6 +4,7 @@ import CampaignSectionTitle from "../components/Campaign/CampaignSectionTitle";
 import ProgressBar from "../components/Campaign/ProgressBar";
 import RegionChart from "../components/Campaign/RegionChart";
 import { ArrowLeft } from "lucide-react";
+import { get } from "../api";
 
 export default function CampaignDetailPage() {
   const navigate = useNavigate();
@@ -26,16 +27,14 @@ export default function CampaignDetailPage() {
       try {
         // 1. Fetch Campaign Stats
         // Note: Removed index.php to match your other API calls, add it back if your server strictly requires it
-        const statsResponse = await fetch(`http://localhost/clientportal/leads/get_campaign_stats/${id}`);
-        const statsResult = await statsResponse.json();
+        const statsResult = await get(`/leads/get_campaign_stats/${id}`);
         
         if (statsResult.status === "success") {
           setStats(statsResult.data); 
         }
 
         // 2. Fetch Campaign Details to get the Dynamic Name
-        const detailResponse = await fetch(`http://localhost/clientportal/campaign/get_detail/${id}`);
-        const detailResult = await detailResponse.json();
+        const detailResult = await get(`/campaign/get_detail/${id}`);
         
         if (detailResult.status === "success" && detailResult.data.campaign) {
           setCampaignName(detailResult.data.campaign.campaign_name);

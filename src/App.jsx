@@ -17,9 +17,9 @@ import OrgCampaignDetailPage from "./pages/OrgCampaignDetailPage.jsx";
 import ManageClientLayout from "./Layout/ManageClientLayout.jsx";
 import ManageClientPage from "./pages/ManageClientPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import { canAccessPage, defaultPathByRole } from "./accessControl.js";
 
-// --- SMART SECURITY GUARD COMPONENT ---
-const ProtectedRoute = ({ allowedRole }) => {
+const ProtectedRoute = ({ page }) => {
   const userStr = localStorage.getItem("user");
   
   if (!userStr) {
@@ -27,12 +27,8 @@ const ProtectedRoute = ({ allowedRole }) => {
   }
   
   const user = JSON.parse(userStr);
-  if (user.role === "org") {
-    return <Outlet />;
-  }
-  
-  if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to="/campaigns" replace />;
+  if (!canAccessPage(user.role, page)) {
+    return <Navigate to={defaultPathByRole[user.role] || "/login"} replace />;
   }
 
   return <Outlet />;
@@ -47,49 +43,76 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
 
-        {/* ================= CLIENT PROTECTED ROUTES ================= */}
-        <Route element={<ProtectedRoute allowedRole="client" />}>
+        <Route element={<ProtectedRoute page="campaigns" />}>
           <Route element={<CampaignListLayout />}>
             <Route path="/campaigns" element={<CampaignListPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute page="campaign-detail" />}>
+          <Route element={<CampaignListLayout />}>
             <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
           </Route>
+        </Route>
 
+        <Route element={<ProtectedRoute page="leads" />}>
           <Route element={<LeadsFileLayout />}>
             <Route path="/leads-file" element={<LeadsFilePage />} />
           </Route>
+        </Route>
 
+        <Route element={<ProtectedRoute page="messages" />}>
           <Route element={<MessageLayout />}>
             <Route path="/messages" element={<MessagePage />} />
           </Route>
+        </Route>
 
+        <Route element={<ProtectedRoute page="reports" />}>
           <Route element={<ReportsLayout />}>
             <Route path="/reports" element={<ReportsPage />} />
           </Route>
         </Route>
 
-        {/* ================= ORG (ADMIN) PROTECTED ROUTES ================= */}
-        <Route element={<ProtectedRoute allowedRole="org" />}>
-          
+        <Route element={<ProtectedRoute page="campaigns" />}>
           <Route element={<OrgCampaignListLayout />}>
             <Route path="/org/campaigns" element={<OrgCampaignListPage />} />
-            {/* Org ke baaki saare tabs ab OrgCampaignListLayout ke andar chalenge taaki Navbar & Dropdown hamesha dikhe */}
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute page="messages" />}>
+          <Route element={<OrgCampaignListLayout />}>
             <Route path="/org/messages" element={<MessagePage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute page="reports" />}>
+          <Route element={<OrgCampaignListLayout />}>
             <Route path="/org/reports" element={<ReportsPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute page="leads" />}>
+          <Route element={<OrgCampaignListLayout />}>
             <Route path="/org/leads-file" element={<LeadsFilePage />} />
           </Route>
+        </Route>
 
+        <Route element={<ProtectedRoute page="create-campaign" />}>
           <Route element={<OrgCreateCampaignLayout />}>
             <Route path="/org/create-campaign" element={<CreateCampaignPage />} />
           </Route>
+        </Route>
 
+        <Route element={<ProtectedRoute page="campaign-detail" />}>
           <Route element={<OrgCampaignDetailLayout />}>
             <Route path="/org/campaigns/:id" element={<OrgCampaignDetailPage />} />
           </Route>
+        </Route>
 
+        <Route element={<ProtectedRoute page="manage-client" />}>
           <Route element={<ManageClientLayout />}>
             <Route path="/org/manage-client" element={<ManageClientPage />} />
           </Route>
-
         </Route>
 
       </Routes>

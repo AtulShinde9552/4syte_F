@@ -1,12 +1,36 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, CheckCircle2 } from "lucide-react";
 import FormCard from "../../components/form/FormCard";
 import FileUploadField from "../../components/form/FileUploadField";
 import TextAreaField from "../../components/form/TextAreaField";
+// FIX: 'get' aur 'post' dono ko import kiya gaya hai
+import { get, post } from "../../api"; 
+import { usePopup } from "../../components/Popup";
 
 export default function ResourcesTab({ campaignId, setCampaignId }) {
+  const { show } = usePopup();
   const navigate = useNavigate();
+
+   // --- NAYA: Context aur Smart Client ID Logic ---
+  const outletContext = useOutletContext() || {};
+  const selectedClient = outletContext.selectedClient;
+
+  let targetClientId = "";
+  let userRole = "";
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    userRole = storedUser.role;
+    if (storedUser.role === "client") {
+      targetClientId = storedUser.id;
+    } else if (storedUser.role === "org" && selectedClient) {
+      targetClientId = selectedClient.id;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  // ---------------------------------------------
+
 
   // --- Auto Suggest States ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,16 +40,13 @@ export default function ResourcesTab({ campaignId, setCampaignId }) {
   const dropdownRef = useRef(null);
 
   // --- Form & Data States ---
-  const [resourceFileData, setResourceFileData] = useState(null); // Actual File Object
-  const [resourceFile, setResourceFile] = useState(null); // File Name for UI
+  const [resourceFileData, setResourceFileData] = useState(null); 
+  const [resourceFile, setResourceFile] = useState(null); 
   const [resourceDescription, setResourceDescription] = useState("");
-  const [uploadedResources, setUploadedResources] = useState([]); // Table Data
+  const [uploadedResources, setUploadedResources] = useState([]); 
   const [isLoading, setIsLoading] = useState(false);
 
-  // ==========================================
-  // SEARCH & AUTO-SUGGEST LOGIC
-  // ==========================================
-  const handleSearchChange = (e) => {
+   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
     
@@ -40,9 +61,14 @@ export default function ResourcesTab({ campaignId, setCampaignId }) {
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.length >= 2 && searchQuery !== selectedCampaignName) {
+
+         if (userRole === "org" && !targetClientId) {
+          console.warn("Please select a client to search campaigns.");
+          return;
+        }
+
         try {
-          const response = await fetch(`http://localhost/clientportal/campaign/search?q=${searchQuery}`);
-          const result = await response.json();
+          const result = await get(`/campaign/search?q=${searchQuery}&client_id=${targetClientId}`);
           if (result.status === "success") {
             setSuggestions(result.data);
             setShowSuggestions(true);
@@ -56,7 +82,7 @@ export default function ResourcesTab({ campaignId, setCampaignId }) {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, selectedCampaignName]);
+  }, [searchQuery, selectedCampaignName, targetClientId, userRole]);
 
   const handleSelectCampaign = (id, name) => {
     if (typeof setCampaignId === 'function') setCampaignId(id);
@@ -93,11 +119,11 @@ export default function ResourcesTab({ campaignId, setCampaignId }) {
 
   const handleUpdateResources = async () => {
     if (!campaignId) {
-      alert("Please search and select a Campaign first!");
+      show("Please search and select a Campaign first!", "warning");
       return;
     }
     if (!resourceFileData) {
-      alert("Please select a file to upload.");
+      show("Please select a file to upload.", "warning");
       return;
     }
 
@@ -109,15 +135,10 @@ export default function ResourcesTab({ campaignId, setCampaignId }) {
     formData.append("resourceDescription", resourceDescription);
 
     try {
-      const response = await fetch("http://localhost/clientportal/campaign/save_resource", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
+      const result = await post("/campaign/save_resource", formData);
 
       if (result.status === "success") {
-        alert("Resource uploaded successfully!");
+        show("Resource uploaded successfully!", "success");
         
         // Backend se return hui list ko table state mein set kardo
         setUploadedResources(result.resources);
@@ -127,20 +148,18 @@ export default function ResourcesTab({ campaignId, setCampaignId }) {
         setResourceFile(null);
         setResourceDescription("");
       } else {
-        alert("Error: " + result.message);
+        show(result.message || "Unable to upload the resource.", "error");
       }
     } catch (error) {
       console.error("Submission Error:", error);
-      alert("Failed to connect to the backend server.");
+      show("Failed to connect to the backend server.", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Dummy function for now (API banani padegi delete ke liye)
   const handleRemove = (id) => {
-    // setUploadedResources((prev) => prev.filter((r) => r.id !== id));
-    alert("Delete API need to be connected for ID: " + id);
+    show(`Delete API needs to be connected for ID: ${id}.`, "info");
   };
 
   return (
@@ -231,7 +250,6 @@ export default function ResourcesTab({ campaignId, setCampaignId }) {
                 key={resource.id}
                 className="grid grid-cols-[2fr_1fr_2fr_1fr_1fr] items-center px-4 py-3 text-[13px] text-gray-700 border-t border-[#EBEBEB]"
               >
-                {/* Note: Mapping variables are updated as per Backend DB columns */}
                 <span className="truncate">{resource.original_file_name}</span>
                 <span>{resource.file_type}</span>
                 <span className="truncate">{resource.description || "-"}</span>

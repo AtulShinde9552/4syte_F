@@ -1,15 +1,37 @@
 import { useState, useEffect, useRef } from "react";
+import { useOutletContext } from "react-router-dom"; // NAYA: context ke liye
 import { Search, CheckCircle2 } from "lucide-react";
 import FormCard from "../../components/form/FormCard";
 import FileUploadField from "../../components/form/FileUploadField";
 import TextAreaField from "../../components/form/TextAreaField";
 import CheckboxOption from "../../components/form/CheckboxOption";
+import { get, post } from "../../api"; // FIX: yahan 'get' add kiya
+import { usePopup } from "../../components/Popup";
 
 const inputClass =
   "w-full h-11 bg-[#F9FAFB] border border-[#EBEBEB] rounded-lg px-3 text-[13px] text-gray-700 placeholder:text-gray-400 outline-none focus:border-[#00A292] transition-colors";
 
-// Props mein 'campaignId' aur 'onCriteriaSaved' pass karna zaroori hai
 export default function CriteriaTab({ campaignId, onCriteriaSaved, setCampaignId }) {
+  const { show } = usePopup();
+
+  // --- NAYA: Context aur Smart Client ID Logic ---
+  const outletContext = useOutletContext() || {};
+  const selectedClient = outletContext.selectedClient;
+
+  let targetClientId = "";
+  let userRole = "";
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    userRole = storedUser.role;
+    if (storedUser.role === "client") {
+      targetClientId = storedUser.id;
+    } else if (storedUser.role === "org" && selectedClient) {
+      targetClientId = selectedClient.id;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  // ---------------------------------------------
 
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -55,21 +77,17 @@ export default function CriteriaTab({ campaignId, onCriteriaSaved, setCampaignId
   const [criteriaCsvFileData, setCriteriaCsvFileData] = useState(null);
   const [criteriaCsvFile, setCriteriaCsvFile] = useState(null);
 
-  // Form ke saare fields ko clear karne ka function
   const resetForm = () => {
-    // 1. Search & Campaign Selection Reset
     if (typeof setCampaignId === 'function') setCampaignId(null);
     setSearchQuery("");
     setSelectedCampaignName("");
     setSuggestions([]);
 
-    // 2. File Objects & File Names Reset
     setTargetAccountFileData(null); setTargetAccountFile(null);
     setJobTitleFileData(null); setJobTitleFile(null);
     setPacingFileData(null); setPacingFile(null);
     setCriteriaCsvFileData(null); setCriteriaCsvFile(null);
 
-    // 3. Text Inputs Reset
     setManualJobTitles("");
     setPacingDescription("");
     setGeography("");
@@ -79,7 +97,6 @@ export default function CriteriaTab({ campaignId, onCriteriaSaved, setCampaignId
     setCustomQuestions("");
     setCriteriaInstructions("");
 
-    // 4. Checkboxes Reset
     setTargetAccountExact(false);
     setJobTitleExact(false);
     setPacingExact(false);
@@ -90,12 +107,10 @@ export default function CriteriaTab({ campaignId, onCriteriaSaved, setCampaignId
     setCustomQuestionsExact(false);
   };
 
-
-const handleSearchChange = (e) => {
+  const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
     
-    // Agar input clear kar diya, to sab reset kar do
     if (value === "") {
       if (typeof setCampaignId === 'function') setCampaignId(null);
       setSelectedCampaignName("");
@@ -104,14 +119,18 @@ const handleSearchChange = (e) => {
     }
   };
 
-  // 2. Debounce API Call (Typing rukne ke 500ms baad call hogi)
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
-      // API tabhi hit hogi jab 2+ characters honge aur query selected naam jaisi na ho
       if (searchQuery.length >= 2 && searchQuery !== selectedCampaignName) {
+        
+        // NAYA: Client check
+        if (userRole === "org" && !targetClientId) {
+          console.warn("Please select a client to search campaigns.");
+          return;
+        }
+
         try {
-          const response = await fetch(`http://localhost/clientportal/campaign/search?q=${searchQuery}`);
-          const result = await response.json();
+          const result = await get(`/campaign/search?q=${searchQuery}&client_id=${targetClientId}`);
           if (result.status === "success") {
             setSuggestions(result.data);
             setShowSuggestions(true);
@@ -125,7 +144,7 @@ const handleSearchChange = (e) => {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, selectedCampaignName]);
+  }, [searchQuery, selectedCampaignName, targetClientId, userRole]);
 
   const handleSelectCampaign = (id, name) => {
     if (typeof setCampaignId === 'function') setCampaignId(id);
@@ -144,7 +163,6 @@ const handleSearchChange = (e) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-
   const handleFile = (setFileObj, setFileName) => (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -156,11 +174,9 @@ const handleSearchChange = (e) => {
     }
   };
 
-  // API Submission Logic
   const handleSaveCriteria = async () => {
-    // Validation: Ensure campaign overview is created first
     if (!campaignId) {
-      alert("Please create the Campaign Overview first!");
+      show("Please create the Campaign Overview first!", "warning");
       return;
     }
 
@@ -169,7 +185,6 @@ const handleSearchChange = (e) => {
     const formData = new FormData();
     formData.append("campaign_id", campaignId);
 
-    // Text Fields
     formData.append("manualJobTitles", manualJobTitles);
     formData.append("pacingDescription", pacingDescription);
     formData.append("geography", geography);
@@ -179,7 +194,6 @@ const handleSearchChange = (e) => {
     formData.append("customQuestions", customQuestions);
     formData.append("criteriaInstructions", criteriaInstructions);
 
-    // Checkboxes (Boolean sent as true/false string)
     formData.append("targetAccountExact", targetAccountExact);
     formData.append("jobTitleExact", jobTitleExact);
     formData.append("pacingExact", pacingExact);
@@ -189,31 +203,24 @@ const handleSearchChange = (e) => {
     formData.append("companySizeExact", companySizeExact);
     formData.append("customQuestionsExact", customQuestionsExact);
 
-    // Append Actual File Objects
     if (targetAccountFileData) formData.append("targetAccountFile", targetAccountFileData);
     if (jobTitleFileData) formData.append("jobTitleFile", jobTitleFileData);
     if (pacingFileData) formData.append("pacingFile", pacingFileData);
     if (criteriaCsvFileData) formData.append("criteriaCsvFile", criteriaCsvFileData);
 
     try {
-      const response = await fetch("http://localhost/clientportal/campaign/save_criteria", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
+      const result = await post("/campaign/save_criteria", formData);
 
       if (result.status === "success") {
-        alert("Criteria saved successfully!");
-      resetForm();
-        
+        show("Criteria saved successfully!", "success");
+        resetForm();
         if (onCriteriaSaved) onCriteriaSaved(); 
       } else {
-        alert("Error: " + result.message);
+        show(result.message || "Unable to save criteria.", "error");
       }
     } catch (error) {
       console.error("Submission Error:", error);
-      alert("Failed to connect to the backend server.");
+      show("Failed to connect to the backend server.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -221,7 +228,6 @@ const handleSearchChange = (e) => {
 
   return (
     <div className="px-4 sm:px-6 lg:px-15 py-6 flex flex-col gap-6">
-    {/* ================= SEARCH ROW WITH AUTO-SUGGEST ================= */}
       <div className="flex items-center gap-3 relative" ref={dropdownRef}>
         <div className="flex items-center gap-3 flex-1 max-w-md h-11 bg-white border border-[#EBEBEB] rounded-full px-4 relative">
           <Search size={17} className="text-gray-400 shrink-0" />
@@ -233,19 +239,16 @@ const handleSearchChange = (e) => {
             placeholder="Search Campaign to add Criteria...."
             className="flex-1 min-w-0 bg-transparent outline-none border-none text-[13px] text-gray-700 placeholder:text-gray-400"
           />
-          {/* Show checkmark if campaign is selected */}
           {campaignId && selectedCampaignName === searchQuery && (
              <CheckCircle2 size={17} className="text-[#00A292] shrink-0" />
           )}
         </div>
 
-        {/* Dropdown Suggestions */}
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute top-12 left-0 w-full max-w-md bg-white border border-[#EBEBEB] rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
             {suggestions.map((camp) => (
               <div
                 key={camp.id}
-                // YAHAN CHANGE KIYA HAI: onClick ki jagah onMouseDown
                 onMouseDown={() => handleSelectCampaign(camp.id, camp.campaign_name)}
                 className="px-4 py-3 text-[13px] text-gray-700 hover:bg-[#F5F6F7] hover:text-[#00A292] cursor-pointer border-b border-[#EBEBEB] last:border-none transition-colors"
               >
@@ -255,16 +258,13 @@ const handleSearchChange = (e) => {
           </div>
         )}
       </div>
-      {/* ============================================================== */}
 
-      {/* Agar campaign selected nahi hai, toh ek warning alert dikha sakte ho */}
       {!campaignId && (
         <div className="bg-amber-50 text-amber-600 border border-amber-200 text-[13px] px-4 py-3 rounded-lg">
           Please search and select a campaign above before adding criteria.
         </div>
       )}
 
-      {/* Row 1: Target Account List / Job Title Criteria */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <FormCard title="Upload Target Account List (CSV / XLSX)">
           <div className="flex flex-col gap-4">
@@ -296,7 +296,6 @@ const handleSearchChange = (e) => {
                 />
               </div>
 
-              {/* Divider + "Or" badge */}
               <div className="hidden sm:block absolute left-1/2 top-0 bottom-0 w-px bg-[#EBEBEB] -translate-x-1/2" />
               <div className="hidden sm:flex items-center justify-center absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full border border-[#EBEBEB] bg-white text-[11px] text-gray-500 shadow-sm">
                 Or
@@ -327,7 +326,6 @@ const handleSearchChange = (e) => {
         </FormCard>
       </div>
 
-      {/* Row 2: Pacing File / Pacing Description */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <FormCard title="Upload Pacing File (CSV or XLSX, Optional)">
           <div className="flex flex-col gap-4">
@@ -362,7 +360,6 @@ const handleSearchChange = (e) => {
         </FormCard>
       </div>
 
-      {/* Row 3: Geography / Industries / Job-Level */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <FormCard title="Geography">
           <div className="flex flex-col gap-2">
@@ -425,7 +422,6 @@ const handleSearchChange = (e) => {
         </FormCard>
       </div>
 
-      {/* Row 4: Company Size / Custom Questions */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <FormCard title="Company Size">
           <div className="flex flex-col gap-2">
@@ -469,7 +465,6 @@ const handleSearchChange = (e) => {
         </div>
       </div>
 
-      {/* Row 5: Instructions / Upload CSV File (Criteria) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <FormCard title="Criteria & Execution Specific Instructions">
           <div className="flex flex-col gap-2">
@@ -493,7 +488,6 @@ const handleSearchChange = (e) => {
         </FormCard>
       </div>
 
-      {/* Save Criteria */}
       <div className="flex justify-end pt-2">
         <button
           type="button"

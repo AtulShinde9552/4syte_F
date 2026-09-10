@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import GlassIconButton from "./GlassIconButton";
 import NotificationPopup from "./NotificationPopup";
 import ClientSelectDropdown from "./ClientSelectDropdown";
+import { get, assetUrl } from "../api";
 
 const notifications = [
   {
@@ -11,14 +12,14 @@ const notifications = [
     sender: "System",
     message: "Welcome to the Org Portal!",
     time: "Just now",
-  }
+  },
 ];
 
 export default function OrgNavbar({ selectedClient, onClientChange }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [clientsList, setClientsList] = useState([]);
   const notificationRef = useRef(null);
-  
+
   let user = {};
   try {
     const storedUser = localStorage.getItem("user");
@@ -29,36 +30,85 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
     console.error("Local storage parse error:", e);
   }
 
-  // --- DYNAMIC AVATAR LOGIC ---
   const adminName = user.name || "Org Admin";
-  const adminAvatar = user.avatar 
-    ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost/clientportal/${user.avatar}`)
+  const adminAvatar = user.avatar
+    ? assetUrl(user.avatar)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=00A292&color=fff`;
+
+  const storageKey = `savedOrgClient_${user?.id}`;
+
+  const handleClientChangeWrapper = (client) => {
+    if (!client) {
+      localStorage.removeItem(storageKey);
+    } else {
+      localStorage.setItem(storageKey, JSON.stringify(client));
+    }
+
+    if (typeof onClientChange === "function") {
+      onClientChange(client);
+    }
+  };
 
   useEffect(() => {
     const fetchClients = async () => {
+      if (!user || !user.id) return;
+
       try {
-        const res = await fetch("http://localhost/clientportal/clients/get_list");
-        const result = await res.json();
-        
+        // NAYA LOGIC: Agar Org Admin hai toh sab mangao, warna sirf apne admin_id se filter karo
+        const apiUrl =
+          user.role === "org"
+            ? "/clients/get_list"
+            : `/clients/get_list?admin_id=${user.id}`;
+
+        const result = await get(apiUrl);
+
         if (result.status === "success") {
-          const activeClients = result.data.filter(c => c.status && c.status.toLowerCase() === "active");
+          const activeClients = result.data.filter((c) => {
+            const isActive = c.status && c.status.toLowerCase() === "active";
+            // NAYA LOGIC: Agar Org Admin hai, toh strict match bypass kar do (isAssignedToMe = true)
+            const isAssignedToMe =
+              user.role === "org"
+                ? true
+                : String(c.admin_id) === String(user.id);
+            return isActive && isAssignedToMe;
+          });
+
           setClientsList(activeClients);
 
-          if (!selectedClient && activeClients.length > 0 && typeof onClientChange === 'function') {
-            onClientChange(activeClients[0]);
+          if (!selectedClient && activeClients.length > 0) {
+            let savedClient = null;
+            try {
+              const storedClientStr = localStorage.getItem(storageKey);
+              if (storedClientStr) {
+                const parsed = JSON.parse(storedClientStr);
+                savedClient = activeClients.find(
+                  (c) => String(c.id) === String(parsed.id),
+                );
+              }
+            } catch (e) {}
+
+            if (savedClient) {
+              handleClientChangeWrapper(savedClient);
+            }
+          } else if (activeClients.length === 0) {
+            handleClientChangeWrapper(null);
           }
         }
       } catch (err) {
         console.error("Error fetching clients for dropdown:", err);
       }
     };
+
     fetchClients();
-  }, []); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(e.target)
+      ) {
         setShowNotifications(false);
       }
     }
@@ -68,7 +118,6 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
 
   return (
     <header className="flex items-center justify-between gap-3 px-3 py-3 sm:px-5 shrink-0">
-      {/* Left */}
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         <h1 className="text-[18px] sm:text-[24px] lg:text-[35px] font-medium truncate">
           Welcome back,
@@ -78,14 +127,11 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
         </h1>
       </div>
 
-      {/* Right */}
       <div className="flex items-center gap-2 sm:gap-3 lg:gap-5 shrink-0">
-        
-        {/* Client Selector Dropdown for Org */}
-        <ClientSelectDropdown 
-          clients={clientsList} 
-          selectedClient={selectedClient} 
-          onSelect={onClientChange} 
+        <ClientSelectDropdown
+          clients={clientsList}
+          selectedClient={selectedClient}
+          onSelect={handleClientChangeWrapper}
         />
 
         <div className="relative" ref={notificationRef}>
@@ -94,23 +140,22 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
             circleSize="w-9 h-9 lg:w-12 lg:h-12"
             onClick={() => setShowNotifications((prev) => !prev)}
           />
-          {showNotifications && <NotificationPopup notifications={notifications} />}
+          {showNotifications && (
+            <NotificationPopup notifications={notifications} />
+          )}
         </div>
 
         <Link to={"/org/messages"}>
           <GlassIconButton icon={Mail} circleSize="w-9 h-9 lg:w-12 lg:h-12" />
         </Link>
 
-        {/* Profile */}
-        {/* Profile */}
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 bg-white/50 rounded-2xl px-3 py-1.5 lg:px-5 lg:py-2 shadow-sm">
-          {/* Yahan humne hardcoded link hata kar dynamic adminAvatar laga diya hai */}
           <img
             src={adminAvatar}
             alt="profile"
             className="w-8 h-8 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-full object-cover shrink-0"
             onError={(e) => {
-              e.target.onerror = null; 
+              e.target.onerror = null;
               e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=00A292&color=fff`;
             }}
           />
@@ -119,7 +164,7 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
               {user.name || "Org Admin"}
             </h3>
             <p className="text-gray-500 text-[10px] lg:text-xs whitespace-nowrap">
-              System Admin
+              {user.role === "main_admin" ? "System Admin" : "Org Admin"}
             </p>
           </div>
         </div>

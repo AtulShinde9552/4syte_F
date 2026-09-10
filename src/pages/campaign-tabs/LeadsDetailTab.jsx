@@ -2,8 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { ChevronDown, Upload } from "lucide-react";
 import UploadedLeadFilesTable from "../../components/leads/UploadedLeadFilesTable";
+// FIX: 'get' aur 'post' dono import kar liye
+import { get, post } from "../../api"; 
+import { usePopup } from "../../components/Popup";
 
 export default function LeadsDetailTab({ templates = [] }) {
+  const { show } = usePopup();
   const { id } = useParams();
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [leadFile, setLeadFile] = useState(null);
@@ -16,8 +20,7 @@ export default function LeadsDetailTab({ templates = [] }) {
 
   const fetchUploadedLeads = async () => {
     try {
-      const response = await fetch(`http://localhost/clientportal/leads/get_list/${id}`);
-      const result = await response.json();
+      const result = await get(`/leads/get_list/${id}`);
       if (result.status === "success") {
         setLeadFilesList(result.data);
       }
@@ -42,24 +45,20 @@ export default function LeadsDetailTab({ templates = [] }) {
     formData.append("lead_file", leadFile);
 
     try {
-      const response = await fetch("http://localhost/clientportal/leads/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
+      const result = await post("/leads/upload", formData);
 
       if (result.status === "success") {
-        alert("Lead file uploaded successfully!");
+        show("Lead file uploaded successfully!", "success");
         setLeadFile(null);
         setSelectedTemplate("");
         // Table data turant refresh karo
         fetchUploadedLeads();
       } else {
-        alert(result.message || "Failed to upload lead file.");
+        show(result.message || "Failed to upload lead file.", "error");
       }
     } catch (error) {
       console.error("Error uploading file:", error);
-      alert("Something went wrong during upload.");
+      show("Something went wrong during upload.", "error");
     } finally {
       setIsUploading(false);
     }

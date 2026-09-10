@@ -1,3 +1,5 @@
+import { assetUrl } from "../../api";
+import { usePopup } from "../../components/Popup";
 import { Megaphone, Download, Trash2 } from "lucide-react";
 
 const columns = [
@@ -53,15 +55,16 @@ function FileRow({ resource, onDownload, onDelete }) {
 }
 
 export default function ResourcesDetailTab({ resources = [] }) {
+  const { show } = usePopup();
   const handleDownloadAll = () => {
     // TODO: wire up bulk download
   };
 
   const handleDownload = (resource) => {
     if (resource.filePath || resource.file_path) {
-      window.open(`http://localhost/clientportal/${resource.filePath || resource.file_path}`, '_blank');
+      window.open(assetUrl(resource.filePath || resource.file_path), '_blank');
     } else {
-      alert("File path not found!");
+      show("File path not found!", "warning");
     }
   };
 

@@ -15,6 +15,12 @@ export default function ClientSelectDropdown({ clients = [], selectedClient, onS
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Safe display name nikalne ke liye function
+  const getDisplayName = (clientObj) => {
+    if (!clientObj) return "Select Client";
+    return clientObj.company_name || clientObj.clientName || clientObj.name || "Unknown Client";
+  };
+
   return (
     <div className="relative shrink-0" ref={ref}>
       <button
@@ -22,7 +28,8 @@ export default function ClientSelectDropdown({ clients = [], selectedClient, onS
         onClick={() => setOpen((prev) => !prev)}
         className="flex items-center gap-1.5 sm:gap-2 bg-white/50 rounded-2xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-sm text-[13px] sm:text-[15px] font-medium text-[#111] whitespace-nowrap"
       >
-        {selectedClient ? selectedClient.clientName : "Select Client"}
+        {/* FIX: Yahan ab actual name show hoga jo blank nahi hoga */}
+        {selectedClient ? getDisplayName(selectedClient) : "Select Client"}
         <ChevronDown
           size={16}
           className={`text-gray-500 transition-transform ${open ? "rotate-180" : ""}`}
@@ -41,12 +48,12 @@ export default function ClientSelectDropdown({ clients = [], selectedClient, onS
                   setOpen(false);
                 }}
                 className={`w-full text-left px-4 py-2.5 text-[14px] hover:bg-gray-50 transition-colors ${
-                  selectedClient && client.id === selectedClient.id
+                  selectedClient && String(client.id) === String(selectedClient.id)
                     ? "text-[#00A292] font-medium bg-[#EAF6F4]"
                     : "text-[#111]"
                 }`}
               >
-                {client.clientName}
+                {getDisplayName(client)}
               </button>
             ))
           ) : (

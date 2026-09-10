@@ -3,6 +3,8 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { FileText, ArrowLeft, TrendingUp, Target, CheckCircle2, Layers, ChevronDown } from "lucide-react";
 import GenericTable from "../components/GenericTable";
 import StatPill from "../components/Reports/StatPill";
+import { get } from "../api";
+import { assetUrl } from "../api";
 import {
   AreaChart,
   Area,
@@ -49,15 +51,14 @@ export default function ReportsPage() {
   const fetchReportData = async (clientId = null) => {
     setIsLoading(true);
     try {
-      let url = "http://localhost/clientportal/reports/get_dashboard_data";
+      let url = "/reports/get_dashboard_data";
       if (clientId) {
         url += `?client_id=${clientId}`;
       } else if (user.role === "client" && user.id) {
         url += `?client_id=${user.id}`;
       }
 
-      const res = await fetch(url);
-      const result = await res.json();
+        const result = await get(url);
 
       if (result.status === "success") {
         setStats(result.data.stats);
@@ -131,7 +132,7 @@ export default function ReportsPage() {
       align: "center",
       render: (row) => (
         <a
-          href={`http://localhost/clientportal/${row.file_path}`}
+          href={assetUrl(row.file_path)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-[#00A292] hover:text-[#008F81] font-medium underline underline-offset-2"

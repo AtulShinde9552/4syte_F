@@ -4,6 +4,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 
 import InboxList from "../components/Message/InboxList";
 import ConversationPanel from "../components/Message/ConversationPanel";
+import { get, post } from "../api";
 
 export default function MessagePage() {
   const navigate = useNavigate();
@@ -43,8 +44,7 @@ export default function MessagePage() {
 
     try {
       const clientIdParam = targetClientId ? `?client_id=${targetClientId}&role=${user.role}` : `?role=${user.role}`;
-      const res = await fetch(`http://localhost/clientportal/messages/get_threads${clientIdParam}`);
-      const result = await res.json();
+      const result = await get(`/messages/get_threads${clientIdParam}`);
       if (result.status === "success") {
         setThreads(result.data);
         if (!activeThreadRef.current && result.data.length > 0) {
@@ -59,8 +59,7 @@ export default function MessagePage() {
   const fetchMessages = async (campaignId) => {
     if (!campaignId) return;
     try {
-      const res = await fetch(`http://localhost/clientportal/messages/get_messages/${campaignId}`);
-      const result = await res.json();
+      const result = await get(`/messages/get_messages/${campaignId}`);
       if (result.status === "success") {
         setMessages(result.data);
       }
@@ -72,13 +71,9 @@ export default function MessagePage() {
   // --- NEW: Mark as Read API Call ---
   const markAsRead = async (campaignId) => {
     try {
-      await fetch("http://localhost/clientportal/messages/mark_as_read", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaign_id: campaignId,
-          role: user.role
-        }),
+      await post("/messages/mark_as_read", {
+        campaign_id: campaignId,
+        role: user.role,
       });
       // Backend update hone ke baad threads wapas mangwa lo taaki badge hat jaye
       fetchThreads(); 
@@ -129,11 +124,7 @@ export default function MessagePage() {
     if (file) formData.append("attachment", file);
 
     try {
-      const res = await fetch("http://localhost/clientportal/messages/send_message", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await res.json();
+      const result = await post("/messages/send_message", formData);
       if (result.status === "success") {
         fetchMessages(activeThreadId); 
         fetchThreads(); 

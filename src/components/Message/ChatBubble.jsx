@@ -1,4 +1,5 @@
 import { User, FileText } from "lucide-react";
+import { assetUrl } from "../../api";
 
 export default function ChatBubble({ message }) {
   const text = message.text || message.message_text;
@@ -49,7 +50,7 @@ export default function ChatBubble({ message }) {
 
   // File download absolute URL
   const fullFileUrl = fileUrl && !fileUrl.startsWith('http') 
-    ? `http://localhost/clientportal/${fileUrl}` 
+    ? assetUrl(fileUrl)
     : fileUrl;
 
   return (

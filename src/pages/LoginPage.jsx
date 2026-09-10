@@ -4,6 +4,7 @@ import { LogIn } from "lucide-react";
 import logo from "../assets/images/logo-4syte.png";
 import loginBg from "../assets/images/login-bg.jpg";
 import { Eye, EyeOff } from "lucide-react";
+import { post } from "../api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -26,21 +27,15 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost/clientportal/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const result = await response.json();
+      const result = await post("/auth/login", { username, password });
 
       if (result.status === "success") {
         localStorage.setItem("user", JSON.stringify(result.data));
 
 
-        if (result.data.role === "org") {
+        if (result.data.role === "main_admin") {
+          navigate("/org/manage-client");
+        } else if (result.data.role === "org") {
           navigate("/org/campaigns");
         } else if (result.data.role === "client") {
           navigate("/campaigns"); 

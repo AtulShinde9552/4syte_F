@@ -1,3 +1,5 @@
+import { assetUrl } from "../../api";
+import { usePopup } from "../../components/Popup";
 import { Megaphone, FileText, Download, Trash2, Plus } from "lucide-react";
 
 function CountBadge({ count }) {
@@ -43,15 +45,16 @@ function FieldRow({ name, count, values = [] }) {
 }
 
 export default function DeliveryTemplateDetailTab({ template, fields = [] }) {
+  const { show } = usePopup();
   const handleAddTemplate = () => {
     // TODO: open add-template flow
   };
 
 const handleDownload = () => {
     if (template && (template.filePath || template.file_path)) {
-      window.open(`http://localhost/clientportal/${template.filePath || template.file_path}`, '_blank');
+      window.open(assetUrl(template.filePath || template.file_path), '_blank');
     } else {
-      alert("Template file path not found!");
+      show("Template file path not found!", "warning");
     }
   };
 

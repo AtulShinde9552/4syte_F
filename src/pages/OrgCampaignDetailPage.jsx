@@ -7,8 +7,11 @@ import ResourcesDetailTab from "./campaign-tabs/ResourcesDetailTab";
 import DeliveryTemplateDetailTab from "./campaign-tabs/DeliveryTemplateDetailTab";
 import ExclusionDetailTab from "./campaign-tabs/ExclusionDetailTab";
 import LeadsDetailTab from "./campaign-tabs/LeadsDetailTab";
+import { get } from "../api";
+import { usePopup } from "../components/Popup";
 
 export default function OrgCampaignDetailPage() {
+  const { show } = usePopup();
   const { id } = useParams(); // URL se campaign ID milegi (jaise /org/campaigns/1)
   const [activeTab, setActiveTab] = useState("Overview");
 const [templates, setTemplates] = useState([]);
@@ -27,8 +30,7 @@ const [templates, setTemplates] = useState([]);
 
   const fetchCampaignDetails = async () => {
     try {
-      const response = await fetch(`http://localhost/clientportal/campaign/get_detail/${id}`);
-      const result = await response.json();
+      const result = await get(`/campaign/get_detail/${id}`);
 
       if (result.status === "success") {
         const camp = result.data.campaign;
@@ -57,7 +59,7 @@ const [templates, setTemplates] = useState([]);
         setExclusions(result.data.exclusions || []);
         setTemplateFields(result.data.templateFields || []);
       } else {
-        alert("Failed to load campaign details.");
+        show("Failed to load campaign details.", "error");
       }
     } catch (error) {
       console.error("Error fetching campaign details:", error);

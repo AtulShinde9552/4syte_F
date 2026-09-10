@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom"; // NAYA: useOutletContext import kiya
+import { useOutletContext, useNavigate } from "react-router-dom"; 
 import { Search, ArrowLeft, CheckCircle2 } from "lucide-react";
 import FormCard from "../../components/form/FormCard";
 import FileUploadField from "../../components/form/FileUploadField";
 import TextAreaField from "../../components/form/TextAreaField";
+// FIX: 'get' aur 'post' dono import kar liye
+import { get, post } from "../../api"; 
+import { usePopup } from "../../components/Popup";
 
 export default function DeliveryTemplateTab({ campaignId, setCampaignId }) {
+  const { show } = usePopup();
   const navigate = useNavigate();
 
   // --- NAYA: Context aur Smart Client ID Logic ---
@@ -60,16 +64,13 @@ export default function DeliveryTemplateTab({ campaignId, setCampaignId }) {
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.length >= 2 && searchQuery !== selectedCampaignName) {
         
-        // NAYA: Agar org admin bina client chune search kare to rok do
         if (userRole === "org" && !targetClientId) {
           console.warn("Please select a client to search campaigns.");
           return;
         }
 
         try {
-          // NAYA: URL mein `&client_id=${targetClientId}` pass kiya!
-          const response = await fetch(`http://localhost/clientportal/campaign/search?q=${searchQuery}&client_id=${targetClientId}`);
-          const result = await response.json();
+          const result = await get(`/campaign/search?q=${searchQuery}&client_id=${targetClientId}`);
           if (result.status === "success") {
             setSuggestions(result.data);
             setShowSuggestions(true);
@@ -83,7 +84,7 @@ export default function DeliveryTemplateTab({ campaignId, setCampaignId }) {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, selectedCampaignName, targetClientId, userRole]); // Dependencies update ki
+  }, [searchQuery, selectedCampaignName, targetClientId, userRole]); 
 
   const handleSelectCampaign = (id, name) => {
     if (typeof setCampaignId === 'function') setCampaignId(id);
@@ -118,11 +119,11 @@ export default function DeliveryTemplateTab({ campaignId, setCampaignId }) {
 
   const handleUpdateTemplates = async () => {
     if (!campaignId) {
-      alert("Please search and select a Campaign first!");
+      show("Please search and select a Campaign first!", "warning");
       return;
     }
     if (!templateFileData) {
-      alert("Please select a delivery template file to upload.");
+      show("Please select a delivery template file to upload.", "warning");
       return;
     }
 
@@ -134,32 +135,27 @@ export default function DeliveryTemplateTab({ campaignId, setCampaignId }) {
     formData.append("templateDescription", templateDescription);
 
     try {
-      const response = await fetch("http://localhost/clientportal/campaign/save_delivery_template", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
+      const result = await post("/campaign/save_delivery_template", formData);
 
       if (result.status === "success") {
-        alert("Delivery Template uploaded successfully!");
+        show("Delivery Template uploaded successfully!", "success");
         setUploadedTemplates(result.templates);
         setTemplateFileData(null);
         setTemplateFile(null);
         setTemplateDescription("");
       } else {
-        alert("Error: " + result.message);
+        show(result.message || "Unable to upload the delivery template.", "error");
       }
     } catch (error) {
       console.error("Submission Error:", error);
-      alert("Failed to connect to the backend server.");
+      show("Failed to connect to the backend server.", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleRemove = (id) => {
-    alert("Delete API need to be connected for ID: " + id);
+    show(`Delete API needs to be connected for ID: ${id}.`, "info");
   };
 
   return (

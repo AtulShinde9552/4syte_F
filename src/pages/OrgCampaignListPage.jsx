@@ -5,6 +5,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import SearchText from "../components/SearchText";
 import GenericTable from "../components/GenericTable";
 import Pagination from "../components/Pagination";
+import { get } from "../api";
 
 export default function OrgCampaignListPage() {
   const { selectedClient } = useOutletContext();
@@ -31,8 +32,7 @@ export default function OrgCampaignListPage() {
     setIsLoading(true);
     try {
       // Yahan humne GET request mein client_id parameter bheja hai
-      const response = await fetch(`http://localhost/clientportal/campaign/get_list?client_id=${clientId}`);
-      const result = await response.json();
+        const result = await get(`/campaign/get_list?client_id=${clientId}`);
 
       if (result.status === "success") {
         const formattedData = result.data.map(camp => {

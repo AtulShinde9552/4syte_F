@@ -12,16 +12,15 @@ import {
 } from "lucide-react";
 import logoFull from "../assets/images/logo-4syte.png";
 import logoIcon from "../assets/images/logo_circle.png";
+import { get, assetUrl } from "../api";
+import { navItemsByRole } from "../accessControl.js";
 
 const baseNavItems = [
-  { label: "Campaigns", icon: Rocket, basePath: "/campaigns" },
-  { label: "Message", icon: Mail, basePath: "/messages" },
-  { label: "Reports", icon: FileText, basePath: "/reports" },
-  { label: "Leads File", icon: Clock, basePath: "/leads-file" },
-];
-
-const orgOnlyItems = [
-  { label: "Manage Client", icon: Folders, basePath: "/org/manage-client" }
+  { page: "campaigns", label: "Campaigns", icon: Rocket, path: "/campaigns" },
+  { page: "messages", label: "Message", icon: Mail, path: "/messages" },
+  { page: "reports", label: "Reports", icon: FileText, path: "/reports" },
+  { page: "leads", label: "Leads File", icon: Clock, path: "/leads-file" },
+  { page: "manage-client", label: "Manage Client", icon: Folders, path: "/org/manage-client" },
 ];
 
 export default function Sidebar({ selectedClient }) {
@@ -52,7 +51,7 @@ export default function Sidebar({ selectedClient }) {
   }
 
   const myAvatar = userAvatarPath 
-    ? (userAvatarPath.startsWith('http') ? userAvatarPath : `http://localhost/clientportal/${userAvatarPath}`)
+      ? assetUrl(userAvatarPath)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=00A292&color=fff`;
 
   // --- FETCH ORG ADMIN AVATAR FOR CLIENTS ---
@@ -60,10 +59,9 @@ export default function Sidebar({ selectedClient }) {
     if (userRole === "client") {
       const fetchAdminAvatar = async () => {
         try {
-          const res = await fetch("http://localhost/clientportal/auth/get_admin_avatar");
-          const result = await res.json();
+          const result = await get("/auth/get_admin_avatar");
           if (result.status === "success" && result.avatar) {
-            setGlobalAdminAvatar(`http://localhost/clientportal/${result.avatar}`);
+            setGlobalAdminAvatar(assetUrl(result.avatar));
           }
         } catch (err) {
           console.error("Failed to fetch admin avatar:", err);
@@ -91,8 +89,7 @@ export default function Sidebar({ selectedClient }) {
 
         if (userRole === "org" && !targetClientId) return;
 
-        const res = await fetch(`http://localhost/clientportal/messages/get_unread_count?client_id=${targetClientId}&role=${userRole}`);
-        const result = await res.json();
+        const result = await get(`/messages/get_unread_count?client_id=${targetClientId}&role=${userRole}`);
 
         if (result.status === "success") {
           const newCount = result.count;
@@ -119,17 +116,15 @@ export default function Sidebar({ selectedClient }) {
     return () => clearInterval(interval);
   }, [selectedClient, location.pathname, userRole, userId]);
 
-  let currentNavItems = baseNavItems.map(item => ({
-    ...item,
-    path: userRole === "org" ? `/org${item.basePath}` : item.basePath
-  }));
-
-  if (userRole === "org") {
-    currentNavItems = [
-      ...currentNavItems, 
-      { ...orgOnlyItems[0], path: orgOnlyItems[0].basePath }
-    ];
-  }
+  const visiblePages = navItemsByRole[userRole] || [];
+  const currentNavItems = baseNavItems
+    .filter(item => visiblePages.includes(item.page))
+    .map(item => ({
+      ...item,
+      path: userRole === "client" || item.page === "manage-client"
+        ? item.path
+        : `/org${item.path}`,
+    }));
 
   const users = [];
 
@@ -147,7 +142,7 @@ export default function Sidebar({ selectedClient }) {
     const clientAvatarPath = selectedClient.avatar;
     
     const clientAvatar = clientAvatarPath 
-      ? (clientAvatarPath.startsWith('http') ? clientAvatarPath : `http://localhost/clientportal/${clientAvatarPath}`)
+        ? assetUrl(clientAvatarPath)
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(clientName)}&background=00A292&color=fff`;
 
     users.push({
@@ -159,7 +154,7 @@ export default function Sidebar({ selectedClient }) {
 
   users.push({
     name: userName, 
-    role: userRole === 'org' ? "System Admin" : "Client Portal", 
+    role: userRole === 'org' || userRole === 'admin' ? "System Admin" : "Client Portal", 
     img: myAvatar, 
   });
 
@@ -258,7 +253,7 @@ export default function Sidebar({ selectedClient }) {
           <div className="flex flex-col gap-5 mt-2">
             <button
               onClick={() => navigate("/settings")}
-              className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-black hover:text-[#00A292] w-full"
+              className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-black hover:text-[#00A292] w-full cursor-pointer"
             >
               <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md backdrop-saturate-150 border border-white/50 shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white/30">
                 <Settings size={16} stroke="#00A292" />
@@ -268,7 +263,7 @@ export default function Sidebar({ selectedClient }) {
               </span>
             </button>
 
-            <button
+            {/* <button
               onClick={() => navigate("/help")}
               className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-black hover:text-[#00A292] w-full"
             >
@@ -278,14 +273,14 @@ export default function Sidebar({ selectedClient }) {
               <span className={`transition-opacity duration-200 ${expanded ? "opacity-100 delay-100" : "opacity-0"}`}>
                 Help Center
               </span>
-            </button>
+            </button> */}
 
             <button
               onClick={() => {
                 localStorage.removeItem("user");
                 navigate("/login");
               }}
-              className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-[#00A292] w-full"
+              className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-[#00A292] w-full cursor-pointer"
             >
               <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md backdrop-saturate-150 border border-white/50 shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white/30">
                 <LogOut size={16} />

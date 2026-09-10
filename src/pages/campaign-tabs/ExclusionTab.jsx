@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom"; // NAYA: useOutletContext import kiya
 import { Search, ArrowLeft, Info, CheckCircle2 } from "lucide-react";
 import FormCard from "../../components/form/FormCard";
 import FileUploadField from "../../components/form/FileUploadField";
+// FIX: 'get' aur 'post' dono import kar liye
+import { get, post } from "../../api"; 
+import { usePopup } from "../../components/Popup";
 
 const exclusionFileTypes = [
   {
@@ -36,7 +39,27 @@ const importantNotes = [
 ];
 
 export default function ExclusionTab({ campaignId, setCampaignId }) {
+  const { show } = usePopup();
   const navigate = useNavigate();
+
+  // --- NAYA: Context aur Smart Client ID Logic ---
+  const outletContext = useOutletContext() || {};
+  const selectedClient = outletContext.selectedClient;
+
+  let targetClientId = "";
+  let userRole = "";
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    userRole = storedUser.role;
+    if (storedUser.role === "client") {
+      targetClientId = storedUser.id;
+    } else if (storedUser.role === "org" && selectedClient) {
+      targetClientId = selectedClient.id;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  // ---------------------------------------------
 
   // --- Auto Suggest States ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,8 +69,8 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
   const dropdownRef = useRef(null);
 
   // --- File & API States ---
-  const [exclusionFileData, setExclusionFileData] = useState(null); // Actual File Object
-  const [exclusionFileName, setExclusionFileName] = useState(null); // File Name for UI
+  const [exclusionFileData, setExclusionFileData] = useState(null); 
+  const [exclusionFileName, setExclusionFileName] = useState(null); 
   const [isLoading, setIsLoading] = useState(false);
 
   // ==========================================
@@ -68,9 +91,16 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.length >= 2 && searchQuery !== selectedCampaignName) {
+        
+        // NAYA: Agar org admin bina client chune search kare to rok do
+        if (userRole === "org" && !targetClientId) {
+          console.warn("Please select a client to search campaigns.");
+          return;
+        }
+
         try {
-          const response = await fetch(`http://localhost/clientportal/campaign/search?q=${searchQuery}`);
-          const result = await response.json();
+          // NAYA: URL mein `&client_id=${targetClientId}` pass kiya!
+          const result = await get(`/campaign/search?q=${searchQuery}&client_id=${targetClientId}`);
           if (result.status === "success") {
             setSuggestions(result.data);
             setShowSuggestions(true);
@@ -84,7 +114,7 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, selectedCampaignName]);
+  }, [searchQuery, selectedCampaignName, targetClientId, userRole]);
 
   const handleSelectCampaign = (id, name) => {
     if (typeof setCampaignId === 'function') setCampaignId(id);
@@ -119,11 +149,11 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
 
   const handleUpdateExclusionList = async () => {
     if (!campaignId) {
-      alert("Please search and select a Campaign first!");
+      show("Please search and select a Campaign first!", "warning");
       return;
     }
     if (!exclusionFileData) {
-      alert("Please select an exclusion file to upload.");
+      show("Please select an exclusion file to upload.", "warning");
       return;
     }
 
@@ -134,26 +164,18 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
     formData.append("exclusion_file", exclusionFileData);
 
     try {
-      // API call for large file upload
-      const response = await fetch("http://localhost/clientportal/campaign/save_exclusion", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
+      const result = await post("/campaign/save_exclusion", formData);
 
       if (result.status === "success") {
-        alert("Exclusion file uploaded successfully!");
-        
-        // Reset file input after successful upload
+        show("Exclusion file uploaded successfully!", "success");
         setExclusionFileData(null);
         setExclusionFileName(null);
       } else {
-        alert("Error: " + result.message);
+        show(result.message || "Unable to upload the exclusion file.", "error");
       }
     } catch (error) {
       console.error("Submission Error:", error);
-      alert("Failed to connect to the backend server. The file might be too large.");
+      show("Failed to connect to the backend server. The file might be too large.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -213,7 +235,6 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8">
-          {/* Left: file type sections */}
           <div className="flex flex-col gap-4">
             {exclusionFileTypes.map((section) => (
               <div key={section.title} className="flex flex-col gap-1">
@@ -237,7 +258,6 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
             ))}
           </div>
 
-          {/* Right: important notes */}
           <div className="flex flex-col gap-2">
             <p className="text-[13px] font-semibold text-[#111]">Important Notes:</p>
             <ul className="pl-4 list-disc marker:text-gray-400 flex flex-col gap-1.5">
@@ -251,7 +271,6 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
         </div>
       </div>
 
-      {/* Upload */}
       <FormCard title="Upload Exclusion File (CSV or XLSX)">
         <FileUploadField
           fileName={exclusionFileName}
@@ -261,7 +280,6 @@ export default function ExclusionTab({ campaignId, setCampaignId }) {
         />
       </FormCard>
 
-      {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-2">
         <button
           type="button"
