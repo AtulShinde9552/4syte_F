@@ -1,13 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.jsx'
 import { PopupProvider } from './components/Popup.jsx'
+import Startup from './components/Startup.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <PopupProvider>
-      <App />
-    </PopupProvider>
-  </StrictMode>,
+  <StrictMode>
+    <PopupProvider>
+      <Startup />
+    </PopupProvider>
+  </StrictMode>,
 )
