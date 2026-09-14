@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Bell, Mail } from "lucide-react";
 import GlassIconButton from "./GlassIconButton";
 import NotificationPopup from "./NotificationPopup";
+import ProfileDrawer from "./ProfileDrawer";
+import useUnreadMessageCount from "../hooks/useUnreadMessageCount";
 import { Link } from "react-router-dom";
 import { assetUrl } from "../api";
 
@@ -17,6 +19,7 @@ const notifications = [
 
 export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const notificationRef = useRef(null);
 
   // 1. DYNAMIC DATA: Local storage se logged in client ka data nikalo
@@ -37,6 +40,7 @@ export default function Navbar() {
   const userAvatar = user.avatar 
     ? assetUrl(user.avatar)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=00A292&color=fff`;
+  const unreadCount = useUnreadMessageCount();
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -49,7 +53,8 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="flex items-center justify-between gap-3 px-3 py-3 sm:px-5 shrink-0">
+    <>
+      <header className="flex items-center justify-between gap-3 px-3 py-3 sm:px-5 shrink-0">
       {/* Left Side */}
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         <h1 className="text-[18px] sm:text-[24px] lg:text-[35px] font-medium truncate">
@@ -75,12 +80,22 @@ export default function Navbar() {
           )}
         </div>
         
-        <Link to={'/messages'}>
+        <Link to={'/messages'} className="relative">
           <GlassIconButton icon={Mail} circleSize="w-9 h-9 lg:w-12 lg:h-12" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-sm border border-white">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </Link>
 
         {/* Profile Section */}
-        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 bg-white/50 rounded-2xl px-3 py-1.5 lg:px-5 lg:py-2 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setShowProfileDrawer(true)}
+          aria-label="Open profile"
+          className="flex items-center gap-2 sm:gap-3 lg:gap-4 bg-white/50 rounded-2xl px-3 py-1.5 lg:px-5 lg:py-2 shadow-sm cursor-pointer"
+        >
           <img
             src={userAvatar}
             alt="profile"
@@ -94,9 +109,18 @@ export default function Navbar() {
               Client Portal
             </p>
           </div>
-        </div>
+        </button>
         
       </div>
-    </header>
+      </header>
+
+      <ProfileDrawer
+        isOpen={showProfileDrawer}
+        onClose={() => setShowProfileDrawer(false)}
+        name={displayName}
+        role="Client Portal"
+        avatar={userAvatar}
+      />
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { User } from "lucide-react";
 
 import ChatBubble from "./ChatBubble";
@@ -10,6 +11,14 @@ export default function ConversationPanel({
   onMessageTextChange,
   onSend,
 }) {
+  const messagesContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [thread?.id, messages]);
+
   if (!thread) {
     return (
       <div className="flex-1 min-h-0 flex items-center justify-center border border-gray-100 rounded-2xl text-[13px] text-gray-400">
@@ -51,7 +60,10 @@ export default function ConversationPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4">
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4"
+      >
         {messages.map((msg) => (
           <ChatBubble key={msg.id} message={msg} />
         ))}

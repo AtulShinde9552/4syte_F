@@ -5,15 +5,13 @@ import {
   Mail,
   FileText,
   Clock,
-  Settings,
-  HelpCircle,
-  LogOut,
   Folders,
 } from "lucide-react";
 import logoFull from "../assets/images/logo-4syte.png";
 import logoIcon from "../assets/images/logo_circle.png";
 import { get, assetUrl } from "../api";
 import { navItemsByRole } from "../accessControl.js";
+import useUnreadMessageCount from "../hooks/useUnreadMessageCount";
 
 const baseNavItems = [
   { page: "campaigns", label: "Campaigns", icon: Rocket, path: "/campaigns" },
@@ -25,7 +23,6 @@ const baseNavItems = [
 
 export default function Sidebar({ selectedClient }) {
   const [expanded, setExpanded] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0); 
   const [globalAdminAvatar, setGlobalAdminAvatar] = useState(null); // STATE FOR ADMIN AVATAR
   const prevCountRef = useRef(0);
   
@@ -35,7 +32,6 @@ export default function Sidebar({ selectedClient }) {
   let userRole = "client";
   let userName = "Client";
   let userAvatarPath = null;
-  let userId = null;
   
   try {
     const userStr = localStorage.getItem("user");
@@ -44,7 +40,6 @@ export default function Sidebar({ selectedClient }) {
       if (user.role) userRole = user.role;
       if (user.name) userName = user.name;
       if (user.avatar) userAvatarPath = user.avatar;
-      if (user.id) userId = user.id;
     }
   } catch (e) {
     console.error("Sidebar role fetch error:", e);
@@ -53,6 +48,7 @@ export default function Sidebar({ selectedClient }) {
   const myAvatar = userAvatarPath 
       ? assetUrl(userAvatarPath)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=00A292&color=fff`;
+  const unreadCount = useUnreadMessageCount(selectedClient);
 
   // --- FETCH ORG ADMIN AVATAR FOR CLIENTS ---
   useEffect(() => {
@@ -71,50 +67,24 @@ export default function Sidebar({ selectedClient }) {
     }
   }, [userRole]);
 
-  // --- POLLING LOGIC FOR MESSAGE BADGE ---
+  // --- DESKTOP NOTIFICATION FOR NEW MESSAGES ---
   useEffect(() => {
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
       Notification.requestPermission();
     }
+  }, []);
 
-    const fetchUnreadCount = async () => {
-      try {
-        let targetClientId = "";
-        
-        if (userRole === "client") {
-          targetClientId = userId;
-        } else if (userRole === "org" && selectedClient) {
-          targetClientId = selectedClient.id;
-        }
-
-        if (userRole === "org" && !targetClientId) return;
-
-        const result = await get(`/messages/get_unread_count?client_id=${targetClientId}&role=${userRole}`);
-
-        if (result.status === "success") {
-          const newCount = result.count;
-          
-          if (newCount > prevCountRef.current && location.pathname.indexOf('/messages') === -1) {
-            if ("Notification" in window && Notification.permission === "granted") {
-              new Notification("New Message!", {
-                body: "You have a new message in your portal.",
-                icon: logoIcon 
-              });
-            }
-          }
-          
-          prevCountRef.current = newCount;
-          setUnreadCount(newCount);
-        }
-      } catch (err) {
-        console.error("Error fetching unread count", err);
+  useEffect(() => {
+    if (unreadCount > prevCountRef.current && !location.pathname.includes("/messages")) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("New Message!", {
+          body: "You have a new message in your portal.",
+          icon: logoIcon,
+        });
       }
-    };
-
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 3000); 
-    return () => clearInterval(interval);
-  }, [selectedClient, location.pathname, userRole, userId]);
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount, location.pathname]);
 
   const visiblePages = navItemsByRole[userRole] || [];
   const currentNavItems = baseNavItems
@@ -179,7 +149,6 @@ export default function Sidebar({ selectedClient }) {
           <nav className="mt-15 flex flex-col gap-5 px-6.5">
             {currentNavItems.map(({ label, icon: Icon, path }) => {
               const active = location.pathname.startsWith(path);
-              const isMessageTab = label === "Message";
 
               return (
                 <button
@@ -192,20 +161,10 @@ export default function Sidebar({ selectedClient }) {
                   <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md backdrop-saturate-150 border border-white/50 shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white/30 relative">
                     <Icon size={16} stroke={active ? "#00A292" : "currentColor"} />
                     
-                    {isMessageTab && unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm border border-white">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </span>
-                    )}
                   </span>
                   
                   <span className={`transition-opacity duration-200 text-[18px] flex items-center gap-2 ${expanded ? "opacity-100 delay-100" : "opacity-0"}`}>
                     {label}
-                    {isMessageTab && unreadCount > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600">
-                        {unreadCount} New
-                      </span>
-                    )}
                   </span>
                 </button>
               );
@@ -250,46 +209,6 @@ export default function Sidebar({ selectedClient }) {
             </div>
           ))}
 
-          <div className="flex flex-col gap-5 mt-2">
-            <button
-              onClick={() => navigate("/settings")}
-              className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-black hover:text-[#00A292] w-full cursor-pointer"
-            >
-              <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md backdrop-saturate-150 border border-white/50 shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white/30">
-                <Settings size={16} stroke="#00A292" />
-              </span>
-              <span className={`transition-opacity duration-200 ${expanded ? "opacity-100 delay-100" : "opacity-0"}`}>
-                Setting
-              </span>
-            </button>
-
-            {/* <button
-              onClick={() => navigate("/help")}
-              className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-black hover:text-[#00A292] w-full"
-            >
-              <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md backdrop-saturate-150 border border-white/50 shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white/30">
-                <HelpCircle size={16} stroke="#00A292" />
-              </span>
-              <span className={`transition-opacity duration-200 ${expanded ? "opacity-100 delay-100" : "opacity-0"}`}>
-                Help Center
-              </span>
-            </button> */}
-
-            <button
-              onClick={() => {
-                localStorage.removeItem("user");
-                navigate("/login");
-              }}
-              className="flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap text-[#00A292] w-full cursor-pointer"
-            >
-              <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md backdrop-saturate-150 border border-white/50 shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white/30">
-                <LogOut size={16} />
-              </span>
-              <span className={`font-medium transition-opacity duration-200 ${expanded ? "opacity-100 delay-100" : "opacity-0"}`}>
-                Log Out
-              </span>
-            </button>
-          </div>
         </div>
       </aside>
     </div>
