@@ -223,7 +223,7 @@ export default function LeadsFilePage() {
       <div
         onMouseEnter={() => setShowFilters(true)}
         onMouseLeave={() => setShowFilters(false)}
-        className="bg-[#FCFCFC] shrink-0 border-b border-gray-100 mb-4 sm:mb-7 rounded-md shadow-sm relative z-50"
+        className="bg-[#FCFCFC] shrink-0 border-b border-gray-100 mb-4 sm:mb-7 rounded-md shadow-sm relative "
       >
         <div className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 lg:px-9">
           <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ export default function LeadsFilePage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 relative w-full sm:w-64">
             
             {/* --- FIX: POSITION RELATIVE & Z-INDEX ADD KIYA --- */}
-            <div className="relative w-full z-[100]">
+            <div className="relative w-full ">
               <div className="flex items-center bg-[#F5F6F7] border border-[#EBEBEB] rounded-lg px-3 py-2 w-full">
                 <Search size={16} className="text-gray-400 mr-2 shrink-0" />
                 <input
