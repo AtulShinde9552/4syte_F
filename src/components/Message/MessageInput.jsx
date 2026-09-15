@@ -1,15 +1,27 @@
 import { Send, Paperclip, Check, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function MessageInput({ value, onChange, onSend }) {
   const fileInputRef = useRef(null);
+  const messageInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  useEffect(() => {
+    if (messageInputRef.current) {
+      messageInputRef.current.style.height = "0px";
+      messageInputRef.current.style.height = `${Math.min(messageInputRef.current.scrollHeight, 120)}px`;
+    }
+  }, [value]);
 
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendClick();
     }
+  }
+
+  function handleTextChange(e) {
+    onChange(e.target.value);
   }
 
   function handleFileChange(e) {
@@ -21,6 +33,9 @@ export default function MessageInput({ value, onChange, onSend }) {
     if (!value.trim() && !selectedFile) return;
     onSend(value, selectedFile);
     onChange("");
+    if (messageInputRef.current) {
+      messageInputRef.current.style.height = "auto";
+    }
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -41,14 +56,15 @@ export default function MessageInput({ value, onChange, onSend }) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 sm:gap-3 border border-gray-200 rounded-full pl-4 sm:pl-5 pr-2 py-1.5">
-        <input
-          type="text"
+      <div className={`flex ${value.includes("\n") ? "items-end rounded-2xl" : "items-center rounded-full"} gap-2 sm:gap-3 border border-gray-200 pl-4 sm:pl-5 pr-2 py-1.5`}>
+        <textarea
+          ref={messageInputRef}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          rows={1}
+          onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           placeholder="Digite a mensagem..."
-          className="flex-1 min-w-0 text-[13px] outline-none placeholder:text-gray-400"
+          className="box-border flex-1 min-w-0 max-h-[120px] resize-none overflow-y-auto scrollbar-hide py-1 text-[13px] leading-5 outline-none placeholder:text-gray-400"
         />
 
         {/* Hidden File Input */}

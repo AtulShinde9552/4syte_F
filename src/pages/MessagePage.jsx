@@ -12,6 +12,7 @@ export default function MessagePage() {
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
+  const [isInboxCollapsed, setIsInboxCollapsed] = useState(false);
 
   const activeThreadRef = useRef(activeThreadId);
   activeThreadRef.current = activeThreadId;
@@ -147,7 +148,13 @@ export default function MessagePage() {
       </div>
 
       <div className="flex-1 min-h-0 flex gap-4 sm:gap-5">
-        <InboxList threads={threads} activeThreadId={activeThreadId} onSelectThread={setActiveThreadId} />
+        <InboxList
+          threads={threads}
+          activeThreadId={activeThreadId}
+          onSelectThread={setActiveThreadId}
+          collapsed={isInboxCollapsed}
+          onToggleCollapse={() => setIsInboxCollapsed((previous) => !previous)}
+        />
         <ConversationPanel thread={activeThread} messages={messages} messageText={messageText} onMessageTextChange={setMessageText} onSend={handleSend} />
       </div>
     </div>

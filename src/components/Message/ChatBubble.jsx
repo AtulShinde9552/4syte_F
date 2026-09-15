@@ -62,10 +62,10 @@ export default function ChatBubble({ message }) {
 
       <div className={`flex flex-col ${fromMe ? "items-end" : "items-start"} max-w-[70%]`}>
         <div
-          className={`px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed flex flex-col gap-2 ${
+          className={`px-3 py-1.5 rounded-2xl text-[13px] leading-relaxed flex flex-col gap-2 ${
             fromMe
               ? "bg-[#00A292] text-white rounded-br-sm shadow-sm"
-              : "bg-white border border-[#00A292] text-[#00A292] rounded-bl-sm shadow-sm"
+              : "bg-[#DAE7E5] border border-[#9ED4CD] text-[#245B56] rounded-bl-sm shadow-sm"
           }`}
         >
           {fullFileUrl && (
