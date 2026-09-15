@@ -154,7 +154,7 @@ export default function Sidebar({ selectedClient }) {
                 <button
                   key={label}
                   onClick={() => navigate(path)}
-                  className={`flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap transition-colors text-[20px] cursor-pointer relative ${
+                  className={`flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap transition-colors text-[20px] cursor-pointer -ml-[2px] relative ${
                     active ? "text-[#00A292] font-medium" : "text-[#0C0C0C] hover:text-[#00A292]"
                   }`}
                 >
@@ -176,7 +176,7 @@ export default function Sidebar({ selectedClient }) {
           {users.map((u, i) => (
             <div
               key={i}
-              className={`flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap rounded-2xl transition-all duration-300 ${
+              className={`-ml-0.5 flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap rounded-2xl transition-all duration-300 ${
                 expanded
                   ? "bg-white/30 backdrop-blur-md backdrop-saturate-150 border border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.06)] px-1.5 py-7"
                   : ""
