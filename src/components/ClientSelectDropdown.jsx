@@ -15,7 +15,6 @@ export default function ClientSelectDropdown({ clients = [], selectedClient, onS
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Safe display name nikalne ke liye function
   const getDisplayName = (clientObj) => {
     if (!clientObj) return "Select Client";
     return clientObj.company_name || clientObj.clientName || clientObj.name || "Unknown Client";
@@ -28,7 +27,6 @@ export default function ClientSelectDropdown({ clients = [], selectedClient, onS
         onClick={() => setOpen((prev) => !prev)}
         className="flex items-center gap-1.5 sm:gap-2 bg-white/50 rounded-2xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-sm text-[13px] sm:text-[15px] font-medium text-[#111] whitespace-nowrap"
       >
-        {/* FIX: Yahan ab actual name show hoga jo blank nahi hoga */}
         {selectedClient ? getDisplayName(selectedClient) : "Select Client"}
         <ChevronDown
           size={16}

@@ -33,29 +33,65 @@ export default function MessagePage() {
   const senderName = user.name || (user.role === "org" ? "Org Admin" : "Client User");
   const senderRole = user.role === "org" ? "System Admin" : "Client";
 
-  let targetClientId = "";
-  if (user.role === "client") {
-    targetClientId = user.id;
-  } else if (user.role === "org" && selectedClient) {
-    targetClientId = selectedClient.id;
+  // let targetClientId = "";
+  // if (user.role === "client") {
+  //   targetClientId = user.id;
+  // } else if (user.role === "org" && selectedClient) {
+  //   targetClientId = selectedClient.id;
+  // }
+
+
+  const actualRole = (user.actual_role || user.role || "").toString().trim();
+const isMainAdmin = actualRole.toLowerCase() === "main admin";
+const adminId = user.id;
+
+let targetClientId = "";
+if (user.role === "client") {
+  targetClientId = user.id;
+} else if (selectedClient) {
+  targetClientId = selectedClient.id;
+}
+
+const fetchThreads = async () => {
+  if (user.role !== "client" && !targetClientId) {
+    setThreads([]);
+    setActiveThreadId(null);
+    setMessages([]);
+    return;
   }
 
-  const fetchThreads = async () => {
-    if (user.role === "org" && !targetClientId) return;
+  try {
+    let url = `/messages/get_threads?role=${user.role}`;
 
-    try {
-      const clientIdParam = targetClientId ? `?client_id=${targetClientId}&role=${user.role}` : `?role=${user.role}`;
-      const result = await get(`/messages/get_threads${clientIdParam}`);
-      if (result.status === "success") {
-        setThreads(result.data);
-        if (!activeThreadRef.current && result.data.length > 0) {
-          setActiveThreadId(result.data[0].id);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching threads:", err);
+    if (targetClientId) {
+      url += `&client_id=${encodeURIComponent(targetClientId)}`;
     }
-  };
+
+    const actualRole = (user.actual_role || user.role || "").toString().trim();
+    const isMainAdmin = actualRole.toLowerCase() === "main admin";
+    const adminId = user.id;
+
+    if (isMainAdmin && adminId) {
+      url += `&actual_role=Main Admin&admin_id=${encodeURIComponent(adminId)}`;
+    } else {
+      url += `&actual_role=${encodeURIComponent(actualRole || "OrgAdmin")}`;
+    }
+
+    const result = await get(url);
+
+    if (result.status === "success") {
+      setThreads(result.data);
+
+      if (!activeThreadRef.current && result.data.length > 0) {
+        setActiveThreadId(result.data[0].id);
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching threads:", err);
+  }
+};
+
+
 
   const fetchMessages = async (campaignId) => {
     if (!campaignId) return;
@@ -76,7 +112,6 @@ export default function MessagePage() {
         campaign_id: campaignId,
         role: user.role,
       });
-      // Backend update hone ke baad threads wapas mangwa lo taaki badge hat jaye
       fetchThreads(); 
     } catch (err) {
       console.error("Error marking as read", err);
@@ -93,18 +128,17 @@ export default function MessagePage() {
     const interval = setInterval(() => {
       fetchThreads(); 
       if (activeThreadRef.current) {
-        fetchMessages(activeThreadRef.current); 
+        fetchMessages(activeThreadRef.current);
       }
-    }, 3000); 
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [selectedClient]); 
+  }, [selectedClient]);
 
-  // --- FIX: Jab chat khule, read mark karo ---
   useEffect(() => {
     if (activeThreadId) {
       fetchMessages(activeThreadId);
-      markAsRead(activeThreadId); // Chat khulte hi database mein 'is_read = 1' ho jayega
+      markAsRead(activeThreadId); 
     } else {
       setMessages([]);
     }
@@ -128,7 +162,7 @@ export default function MessagePage() {
       const result = await post("/messages/send_message", formData);
       if (result.status === "success") {
         fetchMessages(activeThreadId); 
-        fetchThreads(); 
+        fetchThreads();
       }
     } catch (err) {
       console.error("Error sending message:", err);

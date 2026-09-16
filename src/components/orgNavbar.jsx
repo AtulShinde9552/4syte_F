@@ -5,17 +5,9 @@ import GlassIconButton from "./GlassIconButton";
 import NotificationPopup from "./NotificationPopup";
 import ProfileDrawer from "./ProfileDrawer";
 import useUnreadMessageCount from "../hooks/useUnreadMessageCount";
+import useNotifications from "../hooks/useNotifications";
 import ClientSelectDropdown from "./ClientSelectDropdown";
 import { get, assetUrl } from "../api";
-
-const notifications = [
-  {
-    id: 1,
-    sender: "System",
-    message: "Welcome to the Org Portal!",
-    time: "Just now",
-  },
-];
 
 export default function OrgNavbar({ selectedClient, onClientChange }) {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -33,6 +25,17 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
     console.error("Local storage parse error:", e);
   }
 
+  // NOTIFICATIONS:
+  // - Main Admin -> sirf apne assigned clients ki saari activity
+  // - OrgAdmin/CSM -> sirf client ki taraf se aayi activity (naye messages)
+  // selectedClient hone par sirf usi client ka data
+  const {
+    notifications,
+    unreadCount: notifUnread,
+    loading: notifLoading,
+    markAllAsRead,
+  } = useNotifications("org", selectedClient?.id, user.db_role, user.id);
+
   const adminName = user.name || "Org Admin";
   const adminAvatar = user.avatar
     ? assetUrl(user.avatar)
@@ -40,6 +43,16 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
   const unreadCount = useUnreadMessageCount(selectedClient);
 
   const storageKey = `savedOrgClient_${user?.id}`;
+
+  const handleBellClick = () => {
+    setShowNotifications((prev) => {
+      const next = !prev;
+      if (next && notifUnread > 0) {
+        markAllAsRead();
+      }
+      return next;
+    });
+  };
 
   const handleClientChangeWrapper = (client) => {
     if (!client) {
@@ -58,7 +71,7 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
       if (!user || !user.id) return;
 
       try {
-        // NAYA LOGIC: Agar Org Admin hai toh sab mangao, warna sirf apne admin_id se filter karo
+        // Agar Org Admin hai toh sab mangao, warna sirf apne admin_id se filter karo
         const apiUrl =
           user.role === "org"
             ? "/clients/get_list"
@@ -69,7 +82,6 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
         if (result.status === "success") {
           const activeClients = result.data.filter((c) => {
             const isActive = c.status && c.status.toLowerCase() === "active";
-            // NAYA LOGIC: Agar Org Admin hai, toh strict match bypass kar do (isAssignedToMe = true)
             const isAssignedToMe =
               user.role === "org"
                 ? true
@@ -123,67 +135,75 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
   return (
     <>
       <header className="flex items-center justify-between gap-3 px-3 py-3 sm:px-5 shrink-0">
-      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-        <h1 className="text-[18px] sm:text-[24px] lg:text-[35px] font-medium truncate">
-          Welcome back,
-        </h1>
-        <h1 className="text-[18px] sm:text-[24px] lg:text-[35px] font-medium text-[#00A292] truncate">
-          {adminName}
-        </h1>
-      </div>
-
-      <div className="flex items-center gap-2 sm:gap-3 lg:gap-5 shrink-0">
-        <ClientSelectDropdown
-          clients={clientsList}
-          selectedClient={selectedClient}
-          onSelect={handleClientChangeWrapper}
-        />
-
-        <div className="relative" ref={notificationRef}>
-          <GlassIconButton
-            icon={Bell}
-            circleSize="w-9 h-9 lg:w-12 lg:h-12"
-            onClick={() => setShowNotifications((prev) => !prev)}
-          />
-          {showNotifications && (
-            <NotificationPopup notifications={notifications} />
-          )}
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <h1 className="text-[18px] sm:text-[24px] lg:text-[35px] font-medium truncate">
+            Welcome back,
+          </h1>
+          <h1 className="text-[18px] sm:text-[24px] lg:text-[35px] font-medium text-[#00A292] truncate">
+            {adminName}
+          </h1>
         </div>
 
-        <Link to={"/org/messages"} className="relative">
-          <GlassIconButton icon={Mail} circleSize="w-9 h-9 lg:w-12 lg:h-12" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-sm border border-white">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </Link>
-
-        <button
-          type="button"
-          onClick={() => setShowProfileDrawer(true)}
-          aria-label="Open profile"
-          className="flex items-center gap-2 sm:gap-3 lg:gap-4 bg-white/50 rounded-2xl px-3 py-1.5 lg:px-5 lg:py-2 shadow-sm cursor-pointer"
-        >
-          <img
-            src={adminAvatar}
-            alt="profile"
-            className="w-8 h-8 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-full object-cover shrink-0"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=00A292&color=fff`;
-            }}
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-5 shrink-0">
+          <ClientSelectDropdown
+            clients={clientsList}
+            selectedClient={selectedClient}
+            onSelect={handleClientChangeWrapper}
           />
-          <div className="hidden sm:block">
-            <h3 className="text-[14px] lg:text-[20px] font-medium text-[#111] whitespace-nowrap">
-              {user.name || "Org Admin"}
-            </h3>
-            <p className="text-gray-500 text-[10px] lg:text-xs whitespace-nowrap">
-              {user.role === "main_admin" ? "System Admin" : "Org Admin"}
-            </p>
+
+          <div className="relative" ref={notificationRef}>
+            <GlassIconButton
+              icon={Bell}
+              circleSize="w-9 h-9 lg:w-12 lg:h-12"
+              onClick={handleBellClick}
+            />
+            {notifUnread > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-sm border border-white">
+                {notifUnread > 99 ? "99+" : notifUnread}
+              </span>
+            )}
+            {showNotifications && (
+              <NotificationPopup
+                notifications={notifications}
+                loading={notifLoading}
+              />
+            )}
           </div>
-        </button>
-      </div>
+
+          <Link to={"/org/messages"} className="relative">
+            <GlassIconButton icon={Mail} circleSize="w-9 h-9 lg:w-12 lg:h-12" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-sm border border-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setShowProfileDrawer(true)}
+            aria-label="Open profile"
+            className="flex items-center gap-2 sm:gap-3 lg:gap-4 bg-white/50 rounded-2xl px-3 py-1.5 lg:px-5 lg:py-2 shadow-sm cursor-pointer"
+          >
+            <img
+              src={adminAvatar}
+              alt="profile"
+              className="w-8 h-8 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-full object-cover shrink-0"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=00A292&color=fff`;
+              }}
+            />
+            <div className="hidden sm:block">
+              <h3 className="text-[14px] lg:text-[20px] font-medium text-[#111] whitespace-nowrap">
+                {user.name || "Org Admin"}
+              </h3>
+              <p className="text-gray-500 text-[10px] lg:text-xs whitespace-nowrap">
+                {user.role === "main_admin" ? "System Admin" : "Org Admin"}
+              </p>
+            </div>
+          </button>
+        </div>
       </header>
 
       <ProfileDrawer
