@@ -12,12 +12,39 @@ export default function ConversationPanel({
   onSend,
 }) {
   const messagesContainerRef = useRef(null);
+  const isAtBottomRef = useRef(true);
+  const previousThreadIdRef = useRef(thread?.id);
+  const previousMessagesRef = useRef([]);
 
   useEffect(() => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const previousMessages = previousMessagesRef.current;
+    const previousLastMessage = previousMessages[previousMessages.length - 1];
+    const lastMessage = messages[messages.length - 1];
+    const threadChanged = previousThreadIdRef.current !== thread?.id;
+    const hasNewMessage =
+      messages.length > previousMessages.length ||
+      (lastMessage && lastMessage.id !== previousLastMessage?.id);
+
+    if (threadChanged || hasNewMessage || isAtBottomRef.current) {
+      container.scrollTop = container.scrollHeight;
+      isAtBottomRef.current = true;
     }
+
+    previousThreadIdRef.current = thread?.id;
+    previousMessagesRef.current = messages;
   }, [thread?.id, messages]);
+
+  function handleMessagesScroll() {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    isAtBottomRef.current = distanceFromBottom <= 24;
+  }
 
   if (!thread) {
     return (
@@ -62,6 +89,7 @@ export default function ConversationPanel({
       {/* Messages */}
       <div
         ref={messagesContainerRef}
+        onScroll={handleMessagesScroll}
         className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4"
       >
         {messages.map((msg) => (
