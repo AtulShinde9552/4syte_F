@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import CampaignTabsBar from "../components/CampaignTabsBar";
 import OverviewDetailTab from "./campaign-tabs/OverviewDetailTab";
 import CriteriaDetailTab from "./campaign-tabs/CriteriaDetailTab";
@@ -7,7 +7,7 @@ import ResourcesDetailTab from "./campaign-tabs/ResourcesDetailTab";
 import DeliveryTemplateDetailTab from "./campaign-tabs/DeliveryTemplateDetailTab";
 import ExclusionDetailTab from "./campaign-tabs/ExclusionDetailTab";
 import LeadsDetailTab from "./campaign-tabs/LeadsDetailTab";
-import { get } from "../api";
+import { get, post } from "../api";
 import { usePopup } from "../components/Popup";
 
 export default function OrgCampaignDetailPage() {
@@ -23,12 +23,7 @@ const [templates, setTemplates] = useState([]);
   const [exclusions, setExclusions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Component load hone par API call karo
-  useEffect(() => {
-    fetchCampaignDetails();
-  }, [id]);
-
-  const fetchCampaignDetails = async () => {
+  const fetchCampaignDetails = useCallback(async () => {
     try {
       const result = await get(`/campaign/get_detail/${id}`);
 
@@ -66,6 +61,39 @@ const [templates, setTemplates] = useState([]);
     } finally {
       setIsLoading(false);
     }
+  }, [id, show]);
+
+  // Component load hone par API call karo
+  useEffect(() => {
+    // The initial API synchronization intentionally updates the page state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchCampaignDetails();
+  }, [fetchCampaignDetails]);
+
+  const saveOverview = async (values) => {
+    const result = await post("/campaign/update_overview", {
+      campaign_id: campaign.id,
+      ...values,
+    });
+
+    if (result.status !== "success") {
+      throw new Error(result.message || "Unable to update campaign overview.");
+    }
+
+    await fetchCampaignDetails();
+  };
+
+  const saveCriteria = async (values) => {
+    const result = await post("/campaign/update_criteria", {
+      campaign_id: campaign.id,
+      ...values,
+    });
+
+    if (result.status !== "success") {
+      throw new Error(result.message || "Unable to update campaign criteria.");
+    }
+
+    await fetchCampaignDetails();
   };
 
   if (isLoading) {
@@ -98,9 +126,9 @@ const [templates, setTemplates] = useState([]);
       </div>
 
       {activeTab === "Overview" ? (
-        <OverviewDetailTab campaign={campaign} />
+        <OverviewDetailTab campaign={campaign} onSave={saveOverview} />
       ) : activeTab === "Criteria" ? (
-        <CriteriaDetailTab criteria={criteria} />
+        <CriteriaDetailTab criteria={criteria} onSave={saveCriteria} />
       ) : activeTab === "Resources" ? (
         <ResourcesDetailTab resources={resources} />
       ) : activeTab === "Delivery Template" ? (
