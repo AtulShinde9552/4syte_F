@@ -25,12 +25,22 @@ function DetailRow({ label, value, editing, onChange, type = "text" }) {
   );
 }
 
-function StatItem({ value, label }) {
+function StatItem({ value, label, editing, onChange }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[32px] font-bold text-[#00A292] leading-none">
-        {value}
-      </span>
+      {editing ? (
+        <input
+          type="number"
+          min="0"
+          value={value ?? ""}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-28 rounded-lg border border-[#DEDEDE] bg-white px-2 py-1 text-[24px] font-bold text-[#00A292] outline-none focus:border-[#00A292]"
+        />
+      ) : (
+        <span className="text-[32px] font-bold text-[#00A292] leading-none">
+          {value}
+        </span>
+      )}
       <span className="text-[14px] text-gray-700">{label}</span>
     </div>
   );
@@ -119,9 +129,9 @@ export default function OverviewDetailTab({ campaign, onSave }) {
         </div>
 
         <div className="bg-[#F5F6F7] rounded-2xl p-6 flex flex-col gap-5 justify-center">
-          <StatItem value={campaign.maxCompany} label="Max Company" />
+          <StatItem value={draft.maxCompany} label="Max Company" editing={editing} onChange={updateDraft("maxCompany")} />
           <StatItem value={campaign.daysLeft} label="Day's Left" />
-          <StatItem value={campaign.leadsAllocated} label="Leads Allocated" />
+          <StatItem value={draft.leadsAllocated} label="Leads Allocated" editing={editing} onChange={updateDraft("leadsAllocated")} />
         </div>
       </div>
 

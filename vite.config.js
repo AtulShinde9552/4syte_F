@@ -11,6 +11,7 @@ export default defineConfig({
       "/clientportal": {
         target: "https://api.4syte.io/",
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/clientportal/, ""),
       },
     },
   },

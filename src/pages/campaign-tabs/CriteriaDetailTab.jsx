@@ -56,15 +56,22 @@ export default function CriteriaDetailTab({ criteria, onSave }) {
     setSaving(true);
     try {
       await onSave({
-        manualJobTitles: draft.jobTitleList,
-        targetAccountList: draft.targetAccountList,
+        manualJobTitles: draft.jobTitleList ?? draft.manual_job_titles,
+        pacingDescription: draft.pacingDescription ?? draft.passingFileInstructions ?? draft.pacing_description,
         geography: draft.geography,
         industries: draft.industries,
-        jobLevel: draft.jobLevel,
-        companySize: draft.companySize,
-        companyRevenue: draft.companyRevenue,
-        customQuestions: draft.customQuestions,
-        pacingDescription: draft.passingFileInstructions,
+        jobLevel: draft.jobLevel ?? draft.job_level,
+        companySize: draft.companySize ?? draft.company_size,
+        customQuestions: draft.customQuestions ?? draft.custom_questions,
+        criteriaInstructions: draft.criteriaInstructions ?? draft.criteria_instructions,
+        targetAccountExact: draft.targetAccountExact ?? draft.target_account_exact ?? false,
+        jobTitleExact: draft.jobTitleExact ?? draft.job_title_exact ?? false,
+        pacingExact: draft.pacingExact ?? draft.pacing_exact ?? false,
+        geographyExact: draft.geographyExact ?? draft.geography_exact ?? false,
+        industriesExact: draft.industriesExact ?? draft.industries_exact ?? false,
+        jobLevelExact: draft.jobLevelExact ?? draft.job_level_exact ?? false,
+        companySizeExact: draft.companySizeExact ?? draft.company_size_exact ?? false,
+        customQuestionsExact: draft.customQuestionsExact ?? draft.custom_questions_exact ?? false,
       });
       setEditing(false);
       show("Campaign criteria updated successfully.", "success");

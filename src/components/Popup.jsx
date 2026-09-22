@@ -85,15 +85,17 @@ function Popup({
           <div className="flex gap-2 w-full mt-5">
             {onConfirm && (
               <button
+                type="button"
                 onClick={onClose}
-                className="flex-1 h-10 rounded-full border border-gray-200 text-[12.5px] font-semibold text-gray-600"
+                className="flex-1 h-10 rounded-full border border-gray-200 text-[12.5px] font-semibold text-gray-600 cursor-pointer"
               >
                 {cancelText || "Cancel"}
               </button>
             )}
             <button
+              type="button"
               onClick={onConfirm ? handleConfirm : onClose}
-              className="flex-1 h-10 rounded-full text-white text-[12.5px] font-semibold"
+              className="flex-1 h-10 rounded-full text-white text-[12.5px] font-semibold cursor-pointer"
               style={{ background: variant.accent }}
             >
               {confirmText || "OK"}

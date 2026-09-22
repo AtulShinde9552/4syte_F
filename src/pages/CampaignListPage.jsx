@@ -34,12 +34,10 @@ export default function CampaignListPage() {
       // SMART CLIENT ID LOGIC:
       let targetClientId = "";
       if (storedUser.role === "client") {
-        targetClientId = storedUser.id; // Client khud
+        targetClientId = storedUser.id;
       } else if (storedUser.role === "org" && selectedClient) {
-        targetClientId = selectedClient.id; // Dropdown se chuna hua client
+        targetClientId = selectedClient.id;
       }
-
-      // Agar Org Admin hai aur client select nahi kiya, toh API call bacha lo
       if (storedUser.role === "org" && !targetClientId) {
         setCampaigns([]);
         setIsLoading(false);
