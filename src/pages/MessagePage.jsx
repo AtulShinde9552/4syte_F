@@ -4,7 +4,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 
 import InboxList from "../components/Message/InboxList";
 import ConversationPanel from "../components/Message/ConversationPanel";
-import { get, post } from "../api";
+import { get, post, assetUrl } from "../api";
 
 export default function MessagePage() {
   const navigate = useNavigate();
@@ -13,6 +13,13 @@ export default function MessagePage() {
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
   const [isInboxCollapsed, setIsInboxCollapsed] = useState(false);
+  const [adminAvatar, setAdminAvatar] = useState(() => {
+    try {
+      return localStorage.getItem("orgAdminAvatar");
+    } catch {
+      return null;
+    }
+  });
 
   const activeThreadRef = useRef(activeThreadId);
   activeThreadRef.current = activeThreadId;
@@ -31,7 +38,29 @@ export default function MessagePage() {
   }
 
   const senderName = user.name || (user.role === "org" ? "Org Admin" : "Client User");
-  const senderRole = user.role === "org" ? "System Admin" : "Client";
+  const senderRole = user.role === "org" ? "CSM" : "Client";
+
+  useEffect(() => {
+    if (user.role !== "client") return;
+
+    const fetchAdminAvatar = async () => {
+      try {
+        const result = await get("/auth/get_admin_avatar");
+        const avatarPath = result.avatar || result.data?.avatar;
+        if (result.status === "success" && avatarPath) {
+          const avatarUrl = assetUrl(avatarPath);
+          setAdminAvatar(avatarUrl);
+          localStorage.setItem("orgAdminAvatar", avatarUrl);
+        } else if (result.status === "success") {
+          setAdminAvatar("https://ui-avatars.com/api/?name=Org+Admin&background=111&color=fff");
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin avatar for messages:", error);
+      }
+    };
+
+    fetchAdminAvatar();
+  }, [user.role]);
 
   // let targetClientId = "";
   // if (user.role === "client") {
@@ -189,7 +218,14 @@ const fetchThreads = async () => {
           collapsed={isInboxCollapsed}
           onToggleCollapse={() => setIsInboxCollapsed((previous) => !previous)}
         />
-        <ConversationPanel thread={activeThread} messages={messages} messageText={messageText} onMessageTextChange={setMessageText} onSend={handleSend} />
+        <ConversationPanel
+          thread={activeThread}
+          participantAvatar={user.role === "org" ? selectedClient?.avatar : adminAvatar || activeThread?.avatar}
+          messages={messages}
+          messageText={messageText}
+          onMessageTextChange={setMessageText}
+          onSend={handleSend}
+        />
       </div>
     </div>
   );

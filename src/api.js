@@ -5,6 +5,10 @@ export const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 ).replace(/\/+$/, "");
 
+const ASSET_BASE_URL = (
+  import.meta.env.VITE_ASSET_BASE_URL || "https://api.4syte.io"
+).replace(/\/+$/, "");
+
 export function apiUrl(path = "") {
   return `${API_BASE_URL}/${String(path).replace(/^\/+/, "")}`;
 }
@@ -78,5 +82,11 @@ export function del(path, options = {}) {
 export function assetUrl(path) {
   if (!path) return null;
   if (/^https?:\/\//i.test(path)) return path;
+
+  const normalizedPath = String(path).replace(/^\/+/, "");
+  if (normalizedPath.startsWith("uploads/")) {
+    return `${ASSET_BASE_URL}/${normalizedPath}`;
+  }
+
   return apiUrl(path);
 }

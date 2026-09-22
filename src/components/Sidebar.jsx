@@ -57,7 +57,9 @@ export default function Sidebar({ selectedClient }) {
         try {
           const result = await get("/auth/get_admin_avatar");
           if (result.status === "success" && result.avatar) {
-            setGlobalAdminAvatar(assetUrl(result.avatar));
+            const avatarUrl = assetUrl(result.avatar);
+            setGlobalAdminAvatar(avatarUrl);
+            localStorage.setItem("orgAdminAvatar", avatarUrl);
           }
         } catch (err) {
           console.error("Failed to fetch admin avatar:", err);
@@ -154,7 +156,7 @@ export default function Sidebar({ selectedClient }) {
                 <button
                   key={label}
                   onClick={() => navigate(path)}
-                  className={`flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap transition-colors text-[20px] cursor-pointer -ml-[2px] relative ${
+                    className={`flex items-center h-9 gap-3 overflow-hidden whitespace-nowrap transition-colors text-[20px] cursor-pointer -ml-0.5 relative ${
                     active ? "text-[#00A292] font-medium" : "text-[#0C0C0C] hover:text-[#00A292]"
                   }`}
                 >

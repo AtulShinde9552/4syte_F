@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import { User } from "lucide-react";
+import { assetUrl } from "../../api";
 
 import ChatBubble from "./ChatBubble";
 import MessageInput from "./MessageInput";
 
 export default function ConversationPanel({
   thread,
+  participantAvatar,
   messages,
   messageText,
   onMessageTextChange,
@@ -54,17 +56,34 @@ export default function ConversationPanel({
     );
   }
 
+  const cachedAdminAvatar = (() => {
+    try {
+      return localStorage.getItem("orgAdminAvatar");
+    } catch {
+      return null;
+    }
+  })();
+
+  const conversationAvatar = participantAvatar || thread.avatar || cachedAdminAvatar;
+  const conversationAvatarUrl = conversationAvatar && !conversationAvatar.startsWith("http")
+    ? assetUrl(conversationAvatar)
+    : conversationAvatar;
+
   return (
     <div className="flex-1 min-h-0 flex flex-col border border-[#DBDBDB] rounded-2xl overflow-hidden">
       {/* Conversation header */}
       <div className="flex items-center justify-between gap-3 p-4 border-b border-gray-100 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-            {thread.avatar ? (
+            {conversationAvatarUrl ? (
               <img
-                src={thread.avatar}
+                src={conversationAvatarUrl}
                 alt={thread.sender}
                 className="w-full h-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = "https://ui-avatars.com/api/?name=Org+Admin&background=111&color=fff";
+                }}
               />
             ) : (
               <User size={18} className="text-gray-400" />
@@ -93,7 +112,7 @@ export default function ConversationPanel({
         className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4"
       >
         {messages.map((msg) => (
-          <ChatBubble key={msg.id} message={msg} />
+          <ChatBubble key={msg.id} message={msg} threadAvatar={conversationAvatar} />
         ))}
       </div>
 
