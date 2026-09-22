@@ -29,7 +29,7 @@ async function request(path, options = {}) {
 
   try {
     result = JSON.parse(text);
-  } catch (e) {
+  } catch {
     result = text;
   }
 
