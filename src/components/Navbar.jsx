@@ -36,6 +36,13 @@ export default function Navbar() {
     ? assetUrl(user.avatar)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=00A292&color=fff`;
   const unreadCount = useUnreadMessageCount();
+  const participantAvatar = (() => {
+    try {
+      return localStorage.getItem("orgAdminAvatar");
+    } catch {
+      return null;
+    }
+  })();
 
   // Bell toggle: kholte hi sab read mark ho jayenge
   const handleBellClick = () => {
@@ -89,6 +96,7 @@ export default function Navbar() {
               <NotificationPopup
                 notifications={notifications}
                 loading={notifLoading}
+                participantAvatar={participantAvatar}
               />
             )}
           </div>

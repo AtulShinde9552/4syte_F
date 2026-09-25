@@ -166,6 +166,7 @@ export default function OrgNavbar({ selectedClient, onClientChange }) {
               <NotificationPopup
                 notifications={notifications}
                 loading={notifLoading}
+                participantAvatar={selectedClient?.avatar}
               />
             )}
           </div>
