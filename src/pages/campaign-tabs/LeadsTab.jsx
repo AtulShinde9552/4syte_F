@@ -10,33 +10,33 @@ const statusStyles = {
   Failed: "text-red-500",
 };
 
-const initialLeadFiles = [
-  {
-    id: "0-HFTD",
-    uploadedDate: "8 Aug 2026",
-    uploadedTime: "07:00PM",
-    fileName: "Q3 Enterprise Pipeline Push....",
-    submitted: 200,
-    leadSource: "Upload",
-    status: "Processed",
-  },
-  {
-    id: "0-HFTD",
-    uploadedDate: "8 Aug 2026",
-    uploadedTime: "07:00PM",
-    fileName: "Q3 Enterprise Pipeline Push....",
-    submitted: 200,
-    leadSource: "Upload",
-    status: "Processed",
-  },
-];
+// const initialLeadFiles = [
+//   {
+//     id: "0-HFTD",
+//     uploadedDate: "8 Aug 2026",
+//     uploadedTime: "07:00PM",
+//     fileName: "Q3 Enterprise Pipeline Push....",
+//     submitted: 200,
+//     leadSource: "Upload",
+//     status: "Processed",
+//   },
+//   {
+//     id: "0-HFTD",
+//     uploadedDate: "8 Aug 2026",
+//     uploadedTime: "07:00PM",
+//     fileName: "Q3 Enterprise Pipeline Push....",
+//     submitted: 200,
+//     leadSource: "Upload",
+//     status: "Processed",
+//   },
+// ];
 
 export default function LeadsTab() {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [leadFile, setLeadFile] = useState(null);
-  const [leadFiles, setLeadFiles] = useState(initialLeadFiles);
+  const [leadFiles, setLeadFiles] = useState([]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];

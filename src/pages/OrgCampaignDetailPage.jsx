@@ -104,6 +104,33 @@ const [templates, setTemplates] = useState([]);
     await fetchCampaignDetails();
   };
 
+  const saveDeliveryTemplate = async (values) => {
+    if (!values?.id) {
+      throw new Error("Template record not found.");
+    }
+
+    const formData = new FormData();
+    formData.append("campaign_id", campaign.id);
+    formData.append("template_id", values.id);
+
+    Object.entries(values).forEach(([key, value]) => {
+      if (key === "id") return;
+      if (key === "fields") {
+        formData.append("template_fields", JSON.stringify(value));
+        return;
+      }
+      formData.append(key, value ?? "");
+    });
+
+    const result = await post("/campaign/update_delivery_template", formData);
+
+    if (result.status !== "success") {
+      throw new Error(result.message || "Unable to update delivery template.");
+    }
+
+    await fetchCampaignDetails();
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-white rounded-[30px]">
@@ -140,7 +167,7 @@ const [templates, setTemplates] = useState([]);
       ) : activeTab === "Resources" ? (
         <ResourcesDetailTab resources={resources} />
       ) : activeTab === "Delivery Template" ? (
-        <DeliveryTemplateDetailTab template={templates[0]} fields={templateFields} />
+        <DeliveryTemplateDetailTab template={templates[0]} fields={templateFields} onSave={saveDeliveryTemplate} />
       ) : activeTab === "Exclusion" ? (
         <ExclusionDetailTab files={exclusions} />
       ) : activeTab === "Leads" ? (
