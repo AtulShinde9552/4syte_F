@@ -1,25 +1,26 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import CampaignListLayout from "./Layout/CampaignListLayout.jsx";
-import CampaignListPage from "./pages/CampaignListPage.jsx";
-import CampaignDetailPage from "./pages/CampaignDetailPage.jsx";
 import LeadsFileLayout from "./Layout/LeadsFileLayout.jsx";
-import LeadsFilePage from "./pages/LeadsFilePage.jsx";
-import ReportsPage from "./pages/ReportsPage.jsx";
 import ReportsLayout from "./Layout/ReportsLayout.jsx";
 import MessageLayout from "./Layout/MessageLayout.jsx";
-import MessagePage from "./pages/MessagePage.jsx";
-import OrgCampaignListPage from "./pages/OrgCampaignListPage.jsx";
-import CreateCampaignPage from "./pages/CreateCampaignPage.jsx";
 import OrgCreateCampaignLayout from "./Layout/OrgCreateCampaignLayout.jsx";
 import OrgCampaignListLayout from "./Layout/OrgCampaignListLayout.jsx";
 import OrgCampaignDetailLayout from "./Layout/OrgCampaignDetailLayout.jsx";
-import OrgCampaignDetailPage from "./pages/OrgCampaignDetailPage.jsx";
 import ManageClientLayout from "./Layout/ManageClientLayout.jsx";
-import ManageClientPage from "./pages/ManageClientPage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
 import { canAccessPage, defaultPathByRole } from "./accessControl.js";
 import PulseLoader from "./components/PulseLoader.jsx";
+
+const CampaignListPage = lazy(() => import("./pages/CampaignListPage.jsx"));
+const CampaignDetailPage = lazy(() => import("./pages/CampaignDetailPage.jsx"));
+const LeadsFilePage = lazy(() => import("./pages/LeadsFilePage.jsx"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage.jsx"));
+const MessagePage = lazy(() => import("./pages/MessagePage.jsx"));
+const OrgCampaignListPage = lazy(() => import("./pages/OrgCampaignListPage.jsx"));
+const CreateCampaignPage = lazy(() => import("./pages/CreateCampaignPage.jsx"));
+const OrgCampaignDetailPage = lazy(() => import("./pages/OrgCampaignDetailPage.jsx"));
+const ManageClientPage = lazy(() => import("./pages/ManageClientPage.jsx"));
+const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
 
 const ProtectedRoute = ({ page }) => {
   const userStr = localStorage.getItem("user");
@@ -84,7 +85,8 @@ function App() {
   return (
     <BrowserRouter>
       <RouteLoadingBoundary>
-        <Routes>
+				<Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F4F7F6]"><PulseLoader size={120} /></div>}>
+					<Routes>
 
         {/* Public Routes */}
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -162,7 +164,8 @@ function App() {
           </Route>
         </Route>
 
-        </Routes>
+					</Routes>
+				</Suspense>
       </RouteLoadingBoundary>
     </BrowserRouter>
   );
