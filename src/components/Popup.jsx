@@ -40,6 +40,7 @@ function Popup({
   onClose,
   onConfirm,
   confirmText,
+  confirmColor,
   cancelText,
   showButton = true,
   autoClose,
@@ -96,7 +97,7 @@ function Popup({
               type="button"
               onClick={onConfirm ? handleConfirm : onClose}
               className="flex-1 h-10 rounded-full text-white text-[12.5px] font-semibold cursor-pointer"
-              style={{ background: variant.accent }}
+              style={{ background: confirmColor || variant.accent }}
             >
               {confirmText || "OK"}
             </button>

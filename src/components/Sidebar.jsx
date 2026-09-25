@@ -12,6 +12,7 @@ import logoIcon from "../assets/images/logo_circle.png";
 import { get, assetUrl } from "../api";
 import { navItemsByRole } from "../accessControl.js";
 import useUnreadMessageCount from "../hooks/useUnreadMessageCount";
+import { usePopup } from "./Popup";
 
 const baseNavItems = [
   { page: "campaigns", label: "Campaigns", icon: Rocket, path: "/campaigns" },
@@ -28,6 +29,7 @@ export default function Sidebar({ selectedClient }) {
   
   const navigate = useNavigate();
   const location = useLocation();
+  const { show } = usePopup();
 
   let userRole = "client";
   let userName = "Client";
@@ -71,10 +73,28 @@ export default function Sidebar({ selectedClient }) {
 
   // --- DESKTOP NOTIFICATION FOR NEW MESSAGES ---
   useEffect(() => {
-    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-      Notification.requestPermission();
+    const promptKey = "4syte-notification-permission-prompted";
+    if (
+      !("Notification" in window) ||
+      Notification.permission !== "default" ||
+      sessionStorage.getItem(promptKey)
+    ) {
+      return;
     }
-  }, []);
+
+    sessionStorage.setItem(promptKey, "true");
+    show(
+      "Get notified when new messages arrive.",
+      "info",
+      {
+        title: "Enable notifications?",
+        confirmText: "Allow",
+        confirmColor: "#00A292",
+        cancelText: "Not now",
+        onConfirm: () => Notification.requestPermission(),
+      },
+    );
+  }, [show]);
 
   useEffect(() => {
     if (unreadCount > prevCountRef.current && !location.pathname.includes("/messages")) {
